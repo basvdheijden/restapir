@@ -6,8 +6,8 @@ const Promise = require('bluebird');
 
 const Model = require('../classes/model');
 
-class RethinkDB extends Model {
-  constructor(modelData, database, internalDatabase) {
+class RethinkDBEngine extends Model {
+  constructor({modelData, database, internalDatabase}) {
     super(modelData, database, internalDatabase);
 
     database = _.defaults(database, {
@@ -147,4 +147,4 @@ class RethinkDB extends Model {
   }
 }
 
-module.exports = RethinkDB;
+module.exports = RethinkDBEngine;

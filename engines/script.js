@@ -5,11 +5,9 @@ const _ = require('lodash');
 const Model = require('../classes/model');
 const ScriptClass = require('../classes/script');
 
-class Script extends Model {
-  constructor(modelData, database, internalDatabase, storage) {
+class ScriptEngine extends Model {
+  constructor({modelData, database, internalDatabase, Container}) {
     super(modelData, database, internalDatabase);
-
-    this.storage = storage;
 
     this.dbName = database.name;
     this.parameters = database.parameters;
@@ -20,10 +18,12 @@ class Script extends Model {
     operations.forEach(operation => {
       if (modelData.jsonSchema[operation] instanceof Array) {
         const operationName = operation === 'remove' ? 'delete' : operation;
-        this.scripts[operation] = new ScriptClass({
-          name: `${operationName}${modelData.name}`,
-          steps: modelData.jsonSchema[operation]
-        }, this.storage);
+        this.scripts[operation] = Container.get('Script', {
+          definition: {
+            name: `${operationName}${modelData.name}`,
+            steps: modelData.jsonSchema[operation]
+          }
+        });
       }
     });
   }
@@ -92,4 +92,6 @@ class Script extends Model {
   }
 }
 
-module.exports = Script;
+ScriptEngine.require = ['Container'];
+
+module.exports = ScriptEngine;

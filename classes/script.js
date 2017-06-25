@@ -16,8 +16,6 @@ const MathJS = require('mathjs');
 const moment = require('moment-timezone');
 const HttpError = require('http-errors');
 
-const Log = require('./log');
-
 class Script {
   /**
    * Initialize script.
@@ -29,7 +27,7 @@ class Script {
    * @param object options
    *   Script options.
    */
-  constructor(definition, storage, options) {
+  constructor({definition, options, QueryFactory, Log}) {
     if (typeof definition.name !== 'string') {
       throw new Error('Missing name for script');
     }
@@ -44,9 +42,9 @@ class Script {
     this.options = _.defaults(options, {
       debug: false
     });
-    this.storage = storage;
+    this.queryFactory = QueryFactory;
 
-    this.log = new Log(`script ${definition.name}: `);
+    this.log = Log;
 
     this.running = false;
     this.step = 0;
@@ -79,7 +77,12 @@ class Script {
   }
 
   clone() {
-    return new Script(this.definition, this.storage, _.clone(this.options));
+    return new Script({
+      definition: this.definition,
+      options: _.clone(this.options),
+      QueryFactory: this.queryFactory,
+      Log: this.log
+    });
   }
 
   setDebug(value) {
@@ -169,7 +172,7 @@ class Script {
     });
   }
 
-  shorthand(input, value, sourceName) {
+  async shorthand(input, value, sourceName) {
     if (typeof value === 'string') {
       if (value === '/' || value.match(/^\/[\w]/i)) {
         sourceName = `${sourceName}, using shorthand`;
@@ -179,10 +182,13 @@ class Script {
     if (!(value instanceof Array)) {
       return Promise.resolve(value);
     }
-    const script = new Script({
-      name: this.name + ':' + this.lastAction,
-      steps: value
-    }, this.storage, this.options);
+    const script = await this.container.get('Script', {
+      definition: {
+        name: this.name + ':' + this.lastAction,
+        steps: value
+      },
+      options: this.options
+    });
     return script.run(_.cloneDeep(input)).then(result => {
       if (this.options.debug) {
         result.info = sourceName;
@@ -979,5 +985,7 @@ class Script {
     });
   }
 }
+
+Script.require = ['QueryFactory', 'Log'];
 
 module.exports = Script;

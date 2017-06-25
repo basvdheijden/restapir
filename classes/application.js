@@ -11,10 +11,10 @@ const HttpCache = require('./http-cache.js');
 const Authentication = require('./authentication.js');
 
 class Application {
-  constructor({Config, Storage, Log}) {
+  constructor({Config, QueryFactory, Log}) {
     const config = _.defaults(Config.get(), {
       port: 80,
-      storage: {},
+      queryFactory: {},
       authentication: {},
       graphql: {
         enabled: true
@@ -29,20 +29,20 @@ class Application {
     this.app = new BlueGate({log: false});
     this.log = Log;
 
-    this.storage = Storage;
+    this.queryFactory = QueryFactory;
 
     this.instances = {};
-    this.instances.authentication = new Authentication(this.app, this.storage, config.authentication);
+    this.instances.authentication = new Authentication(this.app, this.queryFactory, config.authentication);
     if (config.graphql.enabled) {
-      this.instances.graphql = new GraphqlApi(this.app, this.storage, config.graphql);
+      this.instances.graphql = new GraphqlApi(this.app, this.queryFactory, config.graphql);
     }
     if (config.files.enabled) {
-      this.instances.files = new FilesApi(this.app, this.storage, config.files);
+      this.instances.files = new FilesApi(this.app, this.queryFactory, config.files);
     }
     if (config.script.enabled) {
-      this.instances.script = new ScriptApi(this.app, this.storage, config.script);
+      this.instances.script = new ScriptApi(this.app, this.queryFactory, config.script);
     }
-    this.instances.httpCache = new HttpCache(this.app, this.storage, config.httpCache);
+    this.instances.httpCache = new HttpCache(this.app, this.queryFactory, config.httpCache);
 
     this.app.error(request => {
       if (request.error instanceof HttpError.HttpError) {
@@ -78,6 +78,6 @@ class Application {
 }
 
 Application.singleton = true;
-Application.require = ['Config', 'Storage', 'Log'];
+Application.require = ['Config', 'QueryFactory', 'Log'];
 
 module.exports = Application;

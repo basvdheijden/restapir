@@ -1,13 +1,48 @@
 'use strict';
 
 const fs = require('fs');
-const crypto = require('crypto');
+const Crypto = require('crypto');
 
 const Yaml = require('js-yaml');
 const _ = require('lodash');
 const isMyJsonValid = require('is-my-json-valid');
+const globby = require('globby');
+const Bluebird = require('bluebird');
+const Fs = Bluebird.promisifyAll(require('fs-extra'));
 
 class ModelsCompiler {
+  constructor({Config, Container}) {
+    this.config = _.defaults(Config.get('/storage'), {
+      cacheDir: '/tmp/cache',
+      modelsDir: 'models'
+    });
+    this.container = Container;
+  }
+
+  async getModels() {
+    Fs.ensureDirSync(this.config.cacheDir);
+    const cached = Fs.readdirSync(this.config.cacheDir);
+    const dir = this.config.modelsDir;
+    const items = {};
+    Fs.readdirSync(dir).forEach(file => {
+      if (!file.match(/^.+\.yml$/)) {
+        return;
+      }
+      const inputFile = `${dir}/${file}`;
+      const contents = Fs.readFileSync(inputFile);
+      const hash = Crypto.createHash('sha1').update(contents).digest('hex');
+      const outputFile = this.config.cacheDir + '/' + hash + '.js';
+      const name = file.match(/^(.+)\.yml$/)[1];
+      if (cached.indexOf(`${hash}.js`) < 0) {
+        this.generate(inputFile, outputFile);
+      }
+      const load = require;
+      items[name] = load(outputFile);
+    });
+    return items;
+  }
+
+
   generate(inputFile, outputFile) {
     const name = inputFile.match(/\/([^/]+)\.yml/)[1];
     const schema = Yaml.safeLoad(fs.readFileSync(inputFile));
@@ -110,7 +145,7 @@ class ModelsCompiler {
         object.mutation = mutation;
       }
       ['access', 'mutation'].forEach(key => {
-        const name = crypto.createHash('md5').update(object[key]).digest('hex').substring(16);
+        const name = Crypto.createHash('md5').update(object[key]).digest('hex').substring(16);
         functions[name] = object[key];
         model[key] = name;
       });
@@ -189,5 +224,8 @@ class ModelsCompiler {
     return 'exports.jsonSchema = ' + JSON.stringify(output, null, 2) + ';';
   }
 }
+
+ModelsCompiler.singleton = true;
+ModelsCompiler.require = ['Config'];
 
 module.exports = ModelsCompiler;

@@ -88,12 +88,13 @@ const storage = {
  * Scripts may have input as well, which is provided as input for the first
  * step. The output of the last (top-level) step is the script output.
  */
-describe('Script', () => {
+describe.only('Script', () => {
   let container;
   let app;
   let query;
   let googleSearch;
   let website;
+  let createScript;
 
   const cx = Crypto.randomBytes(8).toString('base64');
   const key = Crypto.randomBytes(8).toString('base64');
@@ -135,7 +136,12 @@ describe('Script', () => {
     website = new WebsiteMockup();
     await googleSearch.startup();
     await website.startup();
-    query = app.storage.query.bind(app.storage);
+    const queryFactory = await container.get('QueryFactory');
+    query = queryFactory.query.bind(app.storage);
+
+    createScript = async (definition, options) => {
+      return await container.get('Script', {definition, options});
+    };
   });
 
   after(async () => {
@@ -153,30 +159,30 @@ describe('Script', () => {
    * steps: []
    * ```
    */
-  it('can run an empty script', () => {
-    const script = new Script({
+  it('can run an empty script', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: []
-    }, storage);
+    });
     return script.run({}).then(output => {
       expect(output).to.deep.equal({});
     });
   });
 
-  it('cannot create a script without name', () => {
-    expect(() => {
-      const script = new Script({
+  it('cannot create a script without name', async () => {
+    await expect(async () => {
+      const script = await createScript({
         steps: []
-      }, storage);
+      });
       script.run({});
     }).to.throw();
   });
 
-  it('cannot create a script without steps', () => {
-    expect(() => {
-      const script = new Script({
+  it('cannot create a script without steps', async () => {
+    await expect(async () => {
+      const script = await createScript({
         name: 'Testscript'
-      }, storage);
+      });
       script.run({});
     }).to.throw();
   });
@@ -191,7 +197,7 @@ describe('Script', () => {
    * Set the ``query`` property to execute a query. The output is written on
    * the ``result`` property.
    */
-  it('can execute query', () => {
+  it('can execute query', async () => {
     const storage = {
       query(query) {
         if (query === '{listItem{id}}') {
@@ -201,12 +207,12 @@ describe('Script', () => {
         }
       }
     };
-    const script = new Script({
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         query: '{listItem{id}}'
       }]
-    }, storage);
+    });
     return script.run({}).then(output => {
       expect(output).to.deep.equal({
         result: {
@@ -222,7 +228,7 @@ describe('Script', () => {
    * The output property can be overridden by setting the ``resultProperty``
    * parameter.
    */
-  it('can override result property', () => {
+  it('can override result property', async () => {
     const storage = {
       query(query) {
         if (query === '{listItem{id}}') {
@@ -232,7 +238,7 @@ describe('Script', () => {
         }
       }
     };
-    const script = new Script({
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         query: {
@@ -240,7 +246,7 @@ describe('Script', () => {
           resultProperty: '/output'
         }
       }]
-    }, storage);
+    });
     return script.run({}).then(output => {
       expect(output).to.deep.equal({
         output: {
@@ -249,7 +255,7 @@ describe('Script', () => {
       });
     });
   });
-  it('can use root as result property', () => {
+  it('can use root as result property', async () => {
     const storage = {
       query(query) {
         if (query === '{listItem{id}}') {
@@ -259,7 +265,7 @@ describe('Script', () => {
         }
       }
     };
-    const script = new Script({
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         query: {
@@ -267,7 +273,7 @@ describe('Script', () => {
           resultProperty: ''
         }
       }]
-    }, storage);
+    });
     return script.run({}).then(output => {
       expect(output).to.deep.equal({
         listItem: [{id: 1}, {id: 2}, {id: 3}]
@@ -282,7 +288,7 @@ describe('Script', () => {
    * must be an object where the keys are parameter names and values are
    * transformations, or just json pointers to directly select a single value.
    */
-  it('can execute parameterized query', () => {
+  it('can execute parameterized query', async () => {
     const storage = {
       query(query, context, args) {
         if (args.id === 2) {
@@ -292,7 +298,7 @@ describe('Script', () => {
         }
       }
     };
-    const script = new Script({
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         query: {
@@ -302,7 +308,7 @@ describe('Script', () => {
           }
         }
       }]
-    }, storage);
+    });
     return script.run({id: 2}).then(output => {
       expect(output).to.deep.equal({
         id: 2,
@@ -322,7 +328,7 @@ describe('Script', () => {
    * The `runInContext` option can be set to true to run the query in its
    * context.
    */
-  it('will run queries context-free by default', () => {
+  it('will run queries context-free by default', async () => {
     const storage = {
       query(query, context, args) {
         if (args.id === 2) {
@@ -337,7 +343,7 @@ describe('Script', () => {
     };
     const context = new Context();
     context.setUser({id: 1});
-    const script = new Script({
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         query: {
@@ -358,7 +364,7 @@ describe('Script', () => {
     });
   });
 
-  it('can run queries in context', () => {
+  it('can run queries in context', async () => {
     const storage = {
       query(query, context, args) {
         if (args.id === 2) {
@@ -373,7 +379,7 @@ describe('Script', () => {
     };
     const context = new Context();
     context.setUser({id: 1});
-    const script = new Script({
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         query: {
@@ -405,8 +411,8 @@ describe('Script', () => {
    * an object with the properties ``headers`` and ``body``. The body is parsed
    * when in JSON format, or a string otherwise.
    */
-  it('can execute request', () => {
-    const script = new Script({
+  it('can execute request', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         request: 'http://localhost:8372/list-pages'
@@ -421,8 +427,8 @@ describe('Script', () => {
     });
   });
 
-  it('will parse JSON output on request', () => {
-    const script = new Script({
+  it('will parse JSON output on request', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         request: 'http://localhost:8372/feed.json'
@@ -433,8 +439,8 @@ describe('Script', () => {
     });
   });
 
-  it('will return XML output as object on request', () => {
-    const script = new Script({
+  it('will return XML output as object on request', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         request: 'http://localhost:8372/feed.xml'
@@ -445,8 +451,8 @@ describe('Script', () => {
     });
   });
 
-  it('can use shorthand in url parametert', () => {
-    const script = new Script({
+  it('can use shorthand in url parametert', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         static: {url: 'http://localhost:8372/list-pages'}
@@ -465,8 +471,8 @@ describe('Script', () => {
     });
   });
 
-  it('will return cookies on request', () => {
-    const script = new Script({
+  it('will return cookies on request', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         request: 'http://localhost:8372/cookie/a'
@@ -477,8 +483,8 @@ describe('Script', () => {
     });
   });
 
-  it('can provide cookies for request', () => {
-    const script = new Script({
+  it('can provide cookies for request', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [
         {
@@ -496,8 +502,8 @@ describe('Script', () => {
     });
   });
 
-  it('can post request body', () => {
-    const script = new Script({
+  it('can post request body', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         request: {
@@ -523,15 +529,15 @@ describe('Script', () => {
    * Transformations can be executed by using the ``transform`` property.
    * Transformations are executed after the query.
    */
-  it('can execute transformation', () => {
-    const script = new Script({
+  it('can execute transformation', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         object: {
           foo: [{static: 'bar'}]
         }
       }]
-    }, storage);
+    });
     return script.run({}).then(output => {
       expect(output).to.deep.equal({
         foo: 'bar'
@@ -539,8 +545,8 @@ describe('Script', () => {
     });
   });
 
-  it('can execute multiple steps', () => {
-    const script = new Script({
+  it('can execute multiple steps', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         object: {
@@ -552,7 +558,7 @@ describe('Script', () => {
           bar: [{static: 'baz'}]
         }
       }]
-    }, storage);
+    });
     return script.run({}).then(output => {
       expect(output).to.deep.equal({
         foo: 'bar',
@@ -585,8 +591,8 @@ describe('Script', () => {
    *
    * The second step will not get executed.
    */
-  it('can do an unconditional jump', () => {
-    const script = new Script({
+  it('can do an unconditional jump', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [
         {
@@ -604,7 +610,7 @@ describe('Script', () => {
           }
         }
       ]
-    }, storage);
+    });
     return script.run({}).then(output => {
       expect(output).to.deep.equal({
         foo: null,
@@ -613,8 +619,8 @@ describe('Script', () => {
     });
   });
 
-  it('can provide label as string for unconditional jump', () => {
-    const script = new Script({
+  it('can provide label as string for unconditional jump', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [
         {
@@ -632,7 +638,7 @@ describe('Script', () => {
           }
         }
       ]
-    }, storage);
+    });
     return script.run({}).then(output => {
       expect(output).to.deep.equal({
         foo: null,
@@ -677,8 +683,8 @@ describe('Script', () => {
    * ``'bar' == 'baz'`` equals to false. The jump is ignored and the next step
    * is the thirth step with the query.
    */
-  it('can do a conditional jump with the default operator', () => {
-    const script = new Script({
+  it('can do a conditional jump with the default operator', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [
         {
@@ -699,7 +705,7 @@ describe('Script', () => {
           }
         }
       ]
-    }, storage);
+    });
     return script.run({}).then(output => {
       expect(output).to.deep.equal({
         foo: 'bar',
@@ -720,8 +726,8 @@ describe('Script', () => {
     unknown: false
   };
   Object.keys(operators).forEach(operator => {
-    it('can do a conditional jump with the ' + operator + ' operator', () => {
-      const script = new Script({
+    it('can do a conditional jump with the ' + operator + ' operator', async () => {
+      const script = await createScript({
         name: 'Testscript',
         steps: [
           {
@@ -744,7 +750,7 @@ describe('Script', () => {
             }
           }
         ]
-      }, storage);
+      });
       return script.run({}).then(output => {
         expect(output).to.deep.equal({
           foo: operators[operator] ? null : 'bar',
@@ -754,8 +760,8 @@ describe('Script', () => {
     });
   });
 
-  it('can do a conditional jump with the "in" operator', () => {
-    const script = new Script({
+  it('can do a conditional jump with the "in" operator', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [
         {
@@ -778,7 +784,7 @@ describe('Script', () => {
           }
         }
       ]
-    }, storage);
+    });
     return script.run({array: [1, 2, 3]}).then(output => {
       expect(output).to.deep.equal({
         foo: null,
@@ -817,13 +823,13 @@ describe('Script', () => {
    * Note that we negated the jump conditon, which can now be read as "if i is
    * greater or equals n".
    */
-  it('can initialize the i-counter', () => {
-    const script = new Script({
+  it('can initialize the i-counter', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         increment: '/i'
       }]
-    }, storage);
+    });
     return script.run({}).then(output => {
       expect(output).to.deep.equal({
         i: 0
@@ -831,13 +837,13 @@ describe('Script', () => {
     });
   });
 
-  it('can increment the i-counter', () => {
-    const script = new Script({
+  it('can increment the i-counter', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         increment: '/i'
       }]
-    }, storage);
+    });
     return script.run({i: 0}).then(output => {
       expect(output).to.deep.equal({
         i: 1
@@ -845,8 +851,8 @@ describe('Script', () => {
     });
   });
 
-  it('can execute a for-loop', () => {
-    const script = new Script({
+  it('can execute a for-loop', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [
         'start',
@@ -869,7 +875,7 @@ describe('Script', () => {
         },
         'end'
       ]
-    }, storage);
+    });
     return script.run({n: 10}).then(output => {
       expect(output).to.deep.equal({
         i: 10,
@@ -886,8 +892,8 @@ describe('Script', () => {
    * bails after executing 1000 steps. You can override this number per script
    * in the ``maxSteps`` property, which value must be a positive integer.
    */
-  it('will fail when executing more steps than maxSteps', () => {
-    const script = new Script({
+  it('will fail when executing more steps than maxSteps', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [
         'start',
@@ -897,7 +903,7 @@ describe('Script', () => {
           }
         }
       ]
-    }, storage);
+    });
     let failed = false;
     return script.run({n: 1e4}).catch(() => {
       failed = true;
@@ -908,8 +914,8 @@ describe('Script', () => {
     });
   });
 
-  it('will not fail when executing many steps (10k)', () => {
-    const script = new Script({
+  it('will not fail when executing many steps (10k)', async () => {
+    const script = await createScript({
       name: 'Testscript',
       maxSteps: (1e4 * 4) + 1,
       steps: [
@@ -932,7 +938,7 @@ describe('Script', () => {
         },
         'end'
       ]
-    }, storage);
+    });
     return script.run({n: 1e4 / 2}).then(output => {
       expect(output).to.deep.equal({
         i: 1e4 / 2,
@@ -941,23 +947,23 @@ describe('Script', () => {
     });
   });
 
-  it('cannot run a script concurrently', () => {
+  it('cannot run a script concurrently', async () => {
     const storage = {
       query() {
         return Bluebird.resolve({}).delay(100);
       }
     };
-    const script = new Script({
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         query: ''
       }]
-    }, storage);
+    });
     // Let first instance run in background.
     script.run();
-    return Bluebird.resolve().delay(50).then(() => {
+    return Bluebird.resolve().delay(50).then(async () => {
       // The first instance is still running.
-      expect(() => {
+      await expect(async () => {
         script.run();
       }).to.throw();
     }).delay(60).then(() => {
@@ -1037,7 +1043,7 @@ describe('Script', () => {
    * This lowers the system resources used, but increases the latency before
    * new jobs are started.
    */
-  it('will automatically execute scheduled scripts', () => {
+  it('will automatically execute scheduled scripts', async () => {
     let userId;
     return query('{user: createUser(name: "John", mail: "john@example.com") { id }}').then(result => {
       userId = result.user.id;
@@ -1059,7 +1065,7 @@ describe('Script', () => {
    * Add the property ``runOnStartup: true`` to run a script on startup. The
    * script will run 2 seconds after startup, to allow the application to boot.
    */
-  it('can run script on startup', () => {
+  it('can run script on startup', async () => {
     let ran = false;
     const storage = {
       query() {
@@ -1075,7 +1081,7 @@ describe('Script', () => {
         steps: [{
           query: ''
         }]
-      }, storage);
+      });
     };
     fn();
     return Bluebird.resolve().delay(2100).then(() => {
@@ -1108,7 +1114,7 @@ describe('Script', () => {
    * Running scripts from queries is currently only possible for context-free
    * queries.
    */
-  it('can execute named script from query', () => {
+  it('can execute named script from query', async () => {
     return query(`{
       script(name: "Uppercase", data: "test")
     }`).then(result => {
@@ -1117,7 +1123,7 @@ describe('Script', () => {
     });
   });
 
-  it('can execute script provided in query', () => {
+  it('can execute script provided in query', async () => {
     return query(`{
       script(steps: [{camelCase: {}}], data: "lorem ipsum")
     }`).then(result => {
@@ -1126,7 +1132,7 @@ describe('Script', () => {
     });
   });
 
-  it('can return debug information for query', () => {
+  it('can return debug information for query', async () => {
     return query(`{
       script(name: "Uppercase", data: "test", debug: true)
     }`).then(result => {
@@ -1143,8 +1149,8 @@ describe('Script', () => {
    * Add the property ``delay: 1000`` to add a delay between executing the
    * steps. The value is the interval in milliseconds.
    */
-  it('can add delay between steps', () => {
-    const script = new Script({
+  it('can add delay between steps', async () => {
+    const script = await createScript({
       name: 'Testscript',
       delay: 100,
       steps: [{
@@ -1154,7 +1160,7 @@ describe('Script', () => {
       }, {
         object: {}
       }]
-    }, storage);
+    });
     const start = new Date();
     return script.run().then(() => {
       const end = new Date();
@@ -1164,14 +1170,14 @@ describe('Script', () => {
     });
   });
 
-  it('will execute postprocessor scripts in model', () => {
+  it('will execute postprocessor scripts in model', async () => {
     return query('{createPost(title:"test"){id title}}').then(result => {
       expect(result.createPost.title).to.equal('TEST');
     });
   });
 
-  it('can retain data in object transformation', () => {
-    const script = new Script({
+  it('can retain data in object transformation', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         object: {
@@ -1179,7 +1185,7 @@ describe('Script', () => {
           '...': '...'
         }
       }]
-    }, storage);
+    });
     return script.run({bar: 'baz'}).then(result => {
       expect(result).to.deep.equal({
         foo: 'bar',
@@ -1188,7 +1194,7 @@ describe('Script', () => {
     });
   });
 
-  it('can read data with Script engine', () => {
+  it('can read data with Script engine', async () => {
     return query('{listWebsiteItem { id name }}').then(result => {
       expect(result.listWebsiteItem).to.have.length(10);
       expect(result.listWebsiteItem[0]).to.have.property('id');
@@ -1196,8 +1202,8 @@ describe('Script', () => {
     });
   });
 
-  it('can read config', () => {
-    const script = new Script({
+  it('can read config', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         config: '/storage/databases/website/parameters/baseUri'
@@ -1208,8 +1214,8 @@ describe('Script', () => {
     });
   });
 
-  it('can get object property keys', () => {
-    const script = new Script({
+  it('can get object property keys', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         keys: {}
@@ -1220,8 +1226,8 @@ describe('Script', () => {
     });
   });
 
-  it('can omit keys from object', () => {
-    const script = new Script({
+  it('can omit keys from object', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         object: {
@@ -1240,8 +1246,8 @@ describe('Script', () => {
     });
   });
 
-  it('can pick keys from object', () => {
-    const script = new Script({
+  it('can pick keys from object', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         object: {
@@ -1260,8 +1266,8 @@ describe('Script', () => {
     });
   });
 
-  it('can detect changes on object', () => {
-    const script = new Script({
+  it('can detect changes on object', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         changed: {
@@ -1281,8 +1287,8 @@ describe('Script', () => {
     });
   });
 
-  it('can apply changes to object', () => {
-    const script = new Script({
+  it('can apply changes to object', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         change: {
@@ -1303,8 +1309,8 @@ describe('Script', () => {
     });
   });
 
-  it('can convert text to base64', () => {
-    const script = new Script({
+  it('can convert text to base64', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         toBase64: {}
@@ -1315,8 +1321,8 @@ describe('Script', () => {
     });
   });
 
-  it('can convert text from base64', () => {
-    const script = new Script({
+  it('can convert text from base64', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         fromBase64: {}
@@ -1327,8 +1333,8 @@ describe('Script', () => {
     });
   });
 
-  it('can render HTML template', () => {
-    const script = new Script({
+  it('can render HTML template', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         render: '<h1>{{title}}</h1>'
@@ -1339,8 +1345,8 @@ describe('Script', () => {
     });
   });
 
-  it('can parse date', () => {
-    const script = new Script({
+  it('can parse date', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         parseDate: {
@@ -1354,8 +1360,8 @@ describe('Script', () => {
     });
   });
 
-  it('can format date', () => {
-    const script = new Script({
+  it('can format date', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         formatDate: {
@@ -1381,8 +1387,8 @@ describe('Script', () => {
    * - filter: {}
    * ```
    */
-  it('can do simple filtering on arrays', () => {
-    const script = new Script({
+  it('can do simple filtering on arrays', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         filter: {}
@@ -1415,8 +1421,8 @@ describe('Script', () => {
    *     - get: /count
    * ```
    */
-  it('can filter with subscript on arrays', () => {
-    const script = new Script({
+  it('can filter with subscript on arrays', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         filter: [{
@@ -1461,8 +1467,8 @@ describe('Script', () => {
    *       - end
    * ```
    */
-  it('can filter with source / filter keys on arrays', () => {
-    const script = new Script({
+  it('can filter with source / filter keys on arrays', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         filter: {
@@ -1512,8 +1518,8 @@ describe('Script', () => {
    *
    * This will produce the output ``["a", "b", "c"]`` for input ``"a/b/c"``.
    */
-  it('can split strings', () => {
-    const script = new Script({
+  it('can split strings', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         split: {
@@ -1538,8 +1544,8 @@ describe('Script', () => {
    *
    * This will produce the output ``["a", "b"]`` for input ``"a/b/c"``.
    */
-  it('can split strings with maxItems', () => {
-    const script = new Script({
+  it('can split strings with maxItems', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         split: {
@@ -1567,8 +1573,8 @@ describe('Script', () => {
    *
    * This will produce the output ``["a", "b/c"]`` for input ``"a/b/c"``.
    */
-  it('can add remainder on split', () => {
-    const script = new Script({
+  it('can add remainder on split', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         split: {
@@ -1600,8 +1606,8 @@ describe('Script', () => {
    * - match: /^[a-z]$/i
    * ```
    */
-  it('can match value with regex', () => {
-    const script = new Script({
+  it('can match value with regex', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         match: '/^(.)[a-z]$/i'
@@ -1621,8 +1627,8 @@ describe('Script', () => {
    * ``input``. Let both be a shorthand which resolves to the regular expression
    * and input.
    */
-  it('can use shorthand in match', () => {
-    const script = new Script({
+  it('can use shorthand in match', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         match: {
@@ -1667,8 +1673,8 @@ describe('Script', () => {
    *
    * Output: ``"bar"``.
    */
-  it('can run script with eval', () => {
-    const script = new Script({
+  it('can run script with eval', async () => {
+    const script = await createScript({
       name: 'Testscript',
       steps: [{
         eval: '/steps'
@@ -1685,7 +1691,7 @@ describe('Script', () => {
     });
   });
 
-  it('can provide debug information', () => {
+  it('can provide debug information', async () => {
     const steps = [{
       static: {foo: 'bar'}
     }, {
@@ -1693,7 +1699,7 @@ describe('Script', () => {
         baz: '/foo'
       }
     }];
-    const script = new Script({name: 'Testscript', steps}, {}, {debug: true});
+    const script = await createScript({name: 'Testscript', steps}, {}, {debug: true});
     return script.run({}).then(result => {
       // The result is split up in 'output', 'definition' and 'children'.
       expect(result).to.have.property('output');
@@ -1716,11 +1722,11 @@ describe('Script', () => {
     });
   });
 
-  it('can run a named script', () => {
+  it('can run a named script', async () => {
     const steps = [{
       script: 'Uppercase'
     }];
-    const script = new Script({name: 'Testscript', steps}, app.storage);
+    const script = await createScript({name: 'Testscript', steps}, app.storage);
     return script.run('foo').then(result => {
       expect(result).to.equal('FOO');
     });

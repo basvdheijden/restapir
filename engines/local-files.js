@@ -24,8 +24,8 @@ const Model = require('../classes/model');
  *   * finished (boolean)
  *   * size (int)
  */
-class LocalFiles extends Model {
-  constructor(modelData, database, internalDatabase) {
+class LocalFilesEngine extends Model {
+  constructor({modelData, database, internalDatabase}) {
     super(modelData, database, internalDatabase);
 
     database = _.defaults(database, {
@@ -108,4 +108,4 @@ class LocalFiles extends Model {
   }
 }
 
-module.exports = LocalFiles;
+module.exports = LocalFilesEngine;

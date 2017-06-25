@@ -8,3 +8,7 @@ const Container = require('./classes/container');
   await container.get('Application');
   console.log('Restapir is running');
 })();
+
+process.on('unhandledRejection', err => {
+  console.log(err.stack);
+});

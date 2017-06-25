@@ -1,5 +1,6 @@
 'use strict';
 
+const _ = require('lodash');
 const globby = require('globby');
 
 class Container {
@@ -10,7 +11,14 @@ class Container {
       'models/**/*.js',
       'plugins/**/*.js'
     ];
-    this.services = {};
+    this.services = {
+      Container: {
+        service: {},
+        instance: this,
+        singleton: true,
+        require: []
+      }
+    };
   }
 
   async startup() {
@@ -50,34 +58,44 @@ class Container {
     return dependencies;
   }
 
-  async get(name) {
+  async get(name, params) {
     if (typeof this.services[name] === 'undefined') {
       throw new Error('Unknown service ' + name);
     }
     const service = this.services[name];
     const Service = service.service;
-    const params = await this.getDependencies(service.require);
-    if (service.singleton) {
-      if (service.instance) {
+    params = _.defaults(params, await this.getDependencies(service.require));
+    let instance;
+    try {
+      if (service.singleton) {
+        if (service.instance) {
+          return service.instance;
+        }
+        service.instance = new Service(params);
+        if (typeof service.instance.startup === 'function') {
+          await service.instance.startup();
+        }
         return service.instance;
       }
-      service.instance = new Service(params);
-      if (typeof service.instance.startup === 'function') {
-        await service.instance.startup();
+      instance = new Service(params);
+      if (typeof instance.startup === 'function') {
+        await instance.startup();
       }
-      return service.instance;
-    }
-    const instance = new Service(params);
-    if (typeof instance.startup === 'function') {
-      await instance.startup();
+    } catch (err) {
+      console.error('Error initializing ' + name);
+      console.error(err.stack);
+      throw err;
     }
     return instance;
   }
 
-  set(name, instance) {
+  mock(name, instance) {
     this.services[name].instance = instance;
   }
 
+  listServices() {
+    return Object.keys(this.services);
+  }
 }
 
 module.exports = Container;

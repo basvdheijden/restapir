@@ -9,8 +9,8 @@ const fetch = require('node-fetch');
 const Script = require('../classes/script');
 const Model = require('../classes/model');
 
-class Http extends Model {
-  constructor(modelData, database, internalDatabase, storage) {
+class HttpEngine extends Model {
+  constructor({modelData, database, internalDatabase}) {
     super(modelData, database, internalDatabase);
 
     this.storage = storage;
@@ -212,4 +212,4 @@ class Http extends Model {
   }
 }
 
-module.exports = Http;
+module.exports = HttpEngine;

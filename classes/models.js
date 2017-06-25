@@ -10,87 +10,101 @@ const globby = require('globby');
 const Script = require('./script');
 
 class Models {
-  constructor(models, options, storage) {
-    this.models = models;
-    this.storage = storage;
-    this.scriptsDir = options.scriptsDir;
-    this.databases = options.databases;
-    this.engines = {};
+  constructor({ModelsCompiler, Config, Container}) {
+    this.compiler = ModelsCompiler;
+    this.container = Container;
+    const config = _.defaults(Config.get('/storage'), {
+      cacheDir: '/tmp/cache',
+      modelsDir: 'models',
+      scriptsDir: 'scripts',
+      databases: []
+    });
+    this.scriptsDir = config.scriptsDir;
+    this.databases = config.databases;
+
     this.instances = {};
     this.plugins = {};
     this.scripts = {};
     this.pluginFields = {};
     this.preprocessors = {};
     this.postprocessors = {};
+  }
 
-    this.ready = new Promise(resolve => {
-      globby([Path.join(__dirname, '../engines/**/*.js')]).then(files => {
-        files.forEach(file => {
-          const load = require;
-          const engine = load(file);
-          this.engines[engine.name] = engine;
-        });
-        Object.keys(models).forEach(name => {
-          const databaseName = this.models[name].database;
-          if (typeof this.databases[databaseName] === 'undefined') {
-            throw new Error('Unknown database ' + databaseName + ' in model ' + name);
-          }
-          const database = this.databases[databaseName];
-          const engine = database.engine;
-          if (typeof this.engines[engine] === 'undefined') {
-            throw new Error('Unknown engine ' + engine + ' in database ' + databaseName);
-          }
-          try {
-            this.instances[name] = new this.engines[engine](this.models[name], database, this.databases.internal, this.storage);
-          } catch (err) {
-            console.log(err.stack);
-          }
-          this.preprocessors[name] = [];
-          this.postprocessors[name] = [];
-        });
-        return globby([Path.join(__dirname, '../plugins/**/*.js')]);
-      }).then(files => {
-        files.forEach(file => {
-          const name = file.match(/\/([^/]+)\.js$/)[1];
-          const load = require;
-          this.plugins[name] = new (load(file))(this.models, this.storage);
-        });
-        Object.keys(this.plugins).forEach(name => {
-          const plugin = this.plugins[name];
+  async startup() {
+    await this.loadModels();
+    await this.loadPlugins();
+    await this.loadScripts();
+  }
 
-          // Fields.
-          const fields = {};
-          const names = plugin.getFields();
-          names.forEach(name => {
-            fields[name] = {
-              plugin
-            };
-          });
-          this.pluginFields = _.merge(this.pluginFields, fields);
+  async loadModels() {
+    const models = await this.compiler.getModels();
 
-          // Preprocess functions.
-          plugin.getPreprocessors().forEach(name => {
-            this.preprocessors[name].push(plugin);
-          });
+    const modelNames = Object.keys(models);
+    for (let i = 0; i < modelNames.length; ++i) {
+      const name = modelNames[i];
+      const databaseName = models[name].database;
+      if (typeof this.databases[databaseName] === 'undefined') {
+        throw new Error('Unknown database ' + databaseName + ' in model ' + name);
+      }
+      const database = this.databases[databaseName];
+      const engine = database.engine + 'Engine';
+      try {
+        this.instances[name] = await this.container.get(engine, {
+          modelData: models[name],
+          database,
+          internalDatabase: this.databases.internal
+        });
+      } catch (err) {
+        console.log(err.stack);
+      }
+      this.preprocessors[name] = [];
+      this.postprocessors[name] = [];
+    }
+  }
 
-          // Postprocess functions.
-          plugin.getPostprocessors().forEach(name => {
-            this.postprocessors[name].push(plugin);
-          });
-        });
-        return globby([Path.resolve(__dirname, '../', this.scriptsDir) + '/**/*.yml']);
-      }).then(files => {
-        files.forEach(file => {
-          const name = file.match(/\/([^/]+)\.yml$/)[1];
-          const definition = Yaml.safeLoad(fs.readFileSync(file));
-          this.scripts[name] = new Script(definition, this.storage);
-        });
-      }).then(() => {
-        resolve();
-      }).catch(error => {
-        console.log(error);
-      });
+  async loadPlugins() {
+    const pluginNames = this.container.listServices().filter(name => {
+      return name.match(/Plugin$/);
     });
+
+    for (let i = 0; i < pluginNames.length; ++i) {
+      const name = pluginNames[i];
+      const plugin = await this.container.get(name, {
+
+      });
+      this.plugins[name] = plugin;
+
+      // Fields.
+      const fields = {};
+      const names = plugin.getFields();
+      names.forEach(name => {
+        fields[name] = {
+          plugin
+        };
+      });
+      this.pluginFields = _.merge(this.pluginFields, fields);
+
+      // Preprocess functions.
+      plugin.getPreprocessors().forEach(name => {
+        this.preprocessors[name].push(plugin);
+      });
+
+      // Postprocess functions.
+      plugin.getPostprocessors().forEach(name => {
+        this.postprocessors[name].push(plugin);
+      });
+    }
+  }
+
+  async loadScripts() {
+    const files = await globby([Path.resolve(__dirname, '../', this.scriptsDir) + '/**/*.yml']);
+    for (let i = 0; i < files.length; ++i) {
+      const file = files[i];
+      const name = file.match(/\/([^/]+)\.yml$/)[1];
+      let contents = fs.readFileSync(file);
+      const definition = Yaml.safeLoad(contents);
+      this.scripts[name] = await this.container.get('Script', {definition});
+    }
   }
 
   has(name) {
@@ -135,5 +149,8 @@ class Models {
     return this.postprocessors[model.name];
   }
 }
+
+Models.singleton = true;
+Models.require = ['ModelsCompiler', 'Config', 'Container'];
 
 module.exports = Models;
