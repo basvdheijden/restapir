@@ -108,27 +108,21 @@ class Models {
   }
 
   has(name) {
-    return this.ready.then(() => {
-      return typeof this.instances[name] !== 'undefined';
-    });
+    return typeof this.instances[name] !== 'undefined';
   }
 
   get(name) {
-    return this.ready.then(() => {
-      if (typeof this.instances[name] === 'undefined') {
-        throw new Error('Model "' + name + '" does not exists');
-      }
-      return this.instances[name];
-    });
+    if (typeof this.instances[name] === 'undefined') {
+      throw new Error('Model "' + name + '" does not exists');
+    }
+    return this.instances[name];
   }
 
   getScript(name) {
-    return this.ready.then(() => {
-      if (typeof this.scripts[name] === 'undefined') {
-        throw new Error('Script "' + name + '" does not exists');
-      }
-      return this.scripts[name];
-    });
+    if (typeof this.scripts[name] === 'undefined') {
+      throw new Error('Script "' + name + '" does not exists');
+    }
+    return this.scripts[name];
   }
 
   hasPluginField(model, field) {

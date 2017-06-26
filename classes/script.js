@@ -27,7 +27,7 @@ class Script {
    * @param object options
    *   Script options.
    */
-  constructor({definition, options, QueryFactory, Log}) {
+  constructor({definition, options, QueryFactory, Log, Container}) {
     if (typeof definition.name !== 'string') {
       throw new Error('Missing name for script');
     }
@@ -45,6 +45,7 @@ class Script {
     this.queryFactory = QueryFactory;
 
     this.log = Log;
+    this.container = Container;
 
     this.running = false;
     this.step = 0;
@@ -335,7 +336,7 @@ class Script {
       if (options.runInContext) {
         context = this.options.context;
       }
-      return this.storage.query(options.query, context, args);
+      return this.queryFactory.query(options.query, context, args);
     }).then(result => {
       const resultProperty = typeof options.resultProperty === 'string' ? options.resultProperty : '/result';
       if (resultProperty === '') {
@@ -986,6 +987,6 @@ class Script {
   }
 }
 
-Script.require = ['QueryFactory', 'Log'];
+Script.require = ['QueryFactory', 'Log', 'Container'];
 
 module.exports = Script;

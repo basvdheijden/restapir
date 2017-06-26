@@ -103,8 +103,7 @@ describe.only('Script', () => {
     container = new Container();
     await container.startup();
 
-    const config = await container.get('Config');
-    config.set({
+    const configObject = {
       port: 10023,
       storage: {
         modelsDir: 'test/script/models',
@@ -130,7 +129,10 @@ describe.only('Script', () => {
           }
         }
       }
-    });
+    };
+
+    const config = await container.get('Config');
+    config.set(configObject);
     app = await container.get('Application');
     googleSearch = new GoogleSearchMockup(key, cx);
     website = new WebsiteMockup();
@@ -139,8 +141,20 @@ describe.only('Script', () => {
     const queryFactory = await container.get('QueryFactory');
     query = queryFactory.query.bind(app.storage);
 
-    createScript = async (definition, options) => {
-      return await container.get('Script', {definition, options});
+    createScript = async (definition, options, queryMock) => {
+      let testContainer = container;
+      if (queryMock) {
+        testContainer = new Container();
+        await testContainer.startup();
+        const config = await testContainer.get('Config');
+        config.set(_.defaults({port: 10024}, configObject));
+        testContainer.mock('Query', class Query {
+          async query(query, args) {
+            return queryMock(query, args);
+          }
+        });
+      }
+      return await testContainer.get('Script', {definition, options});
     };
   });
 
@@ -170,21 +184,27 @@ describe.only('Script', () => {
   });
 
   it('cannot create a script without name', async () => {
-    await expect(async () => {
+    try {
       const script = await createScript({
         steps: []
       });
-      script.run({});
-    }).to.throw();
+      await script.run();
+    } catch (err) {
+      return;
+    }
+    throw new Error('Should have thrown an error');
   });
 
   it('cannot create a script without steps', async () => {
-    await expect(async () => {
+    try {
       const script = await createScript({
         name: 'Testscript'
       });
-      script.run({});
-    }).to.throw();
+      await script.run({});
+    } catch (err) {
+      return;
+    }
+    throw new Error('Should have thrown an error');
   });
 
   /**
@@ -198,20 +218,17 @@ describe.only('Script', () => {
    * the ``result`` property.
    */
   it('can execute query', async () => {
-    const storage = {
-      query(query) {
-        if (query === '{listItem{id}}') {
-          return Promise.resolve({
-            listItem: [{id: 1}, {id: 2}, {id: 3}]
-          });
-        }
-      }
-    };
     const script = await createScript({
       name: 'Testscript',
       steps: [{
         query: '{listItem{id}}'
       }]
+    }, {}, query => {
+      if (query === '{listItem{id}}') {
+        return Promise.resolve({
+          listItem: [{id: 1}, {id: 2}, {id: 3}]
+        });
+      }
     });
     return script.run({}).then(output => {
       expect(output).to.deep.equal({
