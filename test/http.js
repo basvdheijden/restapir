@@ -15,7 +15,7 @@ const WebsiteMockup = require('./mockups/website');
 const expect = chai.expect;
 chai.use(chaiAsPromised);
 
-describe('Http', () => {
+describe.skip('Http', () => {
   let storage;
   let container;
   let googleSearch;

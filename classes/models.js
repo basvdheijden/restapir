@@ -7,8 +7,6 @@ const Yaml = require('js-yaml');
 const _ = require('lodash');
 const globby = require('globby');
 
-const Script = require('./script');
-
 class Models {
   constructor({ModelsCompiler, Config, Container}) {
     this.compiler = ModelsCompiler;
@@ -38,6 +36,7 @@ class Models {
 
   async loadModels() {
     const models = await this.compiler.getModels();
+    this.models = models;
 
     const modelNames = Object.keys(models);
     for (let i = 0; i < modelNames.length; ++i) {
@@ -55,7 +54,7 @@ class Models {
           internalDatabase: this.databases.internal
         });
       } catch (err) {
-        console.log(err.stack);
+        console.error(err.stack);
       }
       this.preprocessors[name] = [];
       this.postprocessors[name] = [];
@@ -64,13 +63,13 @@ class Models {
 
   async loadPlugins() {
     const pluginNames = this.container.listServices().filter(name => {
-      return name.match(/Plugin$/);
+      return name.match(/.+Plugin$/);
     });
 
     for (let i = 0; i < pluginNames.length; ++i) {
       const name = pluginNames[i];
       const plugin = await this.container.get(name, {
-
+        models: this.models
       });
       this.plugins[name] = plugin;
 
@@ -101,7 +100,7 @@ class Models {
     for (let i = 0; i < files.length; ++i) {
       const file = files[i];
       const name = file.match(/\/([^/]+)\.yml$/)[1];
-      let contents = fs.readFileSync(file);
+      const contents = fs.readFileSync(file);
       const definition = Yaml.safeLoad(contents);
       this.scripts[name] = await this.container.get('Script', {definition});
     }

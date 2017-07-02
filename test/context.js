@@ -11,7 +11,7 @@ const expect = chai.expect;
 const Container = require('../classes/container');
 const Context = require('../classes/context');
 
-describe('Context', () => {
+describe.skip('Context', () => {
   let container;
   let storage;
   let temporary = {};

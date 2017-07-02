@@ -6,7 +6,6 @@ const Crypto = require('crypto');
 const Yaml = require('js-yaml');
 const _ = require('lodash');
 const isMyJsonValid = require('is-my-json-valid');
-const globby = require('globby');
 const Bluebird = require('bluebird');
 const Fs = Bluebird.promisifyAll(require('fs-extra'));
 
@@ -41,7 +40,6 @@ class ModelsCompiler {
     });
     return items;
   }
-
 
   generate(inputFile, outputFile) {
     const name = inputFile.match(/\/([^/]+)\.yml/)[1];

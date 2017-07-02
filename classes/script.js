@@ -53,11 +53,10 @@ class Script {
 
     if (typeof definition.schedule === 'string') {
       this.scheduledJob = Schedule.scheduleJob(definition.schedule, () => {
-        if (!this.running) {
-          this.run({});
-        }
+      //   if (!this.running) {
+      //     this.run({});
+      //   }
       });
-      // @todo: Call this.scheduledJob.cancel() when stopping application.
     }
 
     if (this.definition.runOnStartup) {
@@ -75,6 +74,12 @@ class Script {
     ['markdown', 'switch', 'case'].forEach(key => {
       SwigExtra.useTag(Swig, key);
     });
+  }
+
+  async shutdown() {
+    if (this.scheduledJob) {
+      this.scheduledJob.cancel();
+    }
   }
 
   clone() {
@@ -224,7 +229,7 @@ class Script {
     return JsonPointer.get(config, options);
   }
 
-  _request(value, options) {
+  async _request(value, options) {
     // Allows writing "- request: 'url'" for simple GET requests.
     if (typeof options === 'string') {
       options = {
@@ -263,12 +268,15 @@ class Script {
       return output.join('; ');
     };
 
-    const script = new Script({
-      name: `${this.name}:request`,
-      steps: [{
-        object: options
-      }]
-    }, this.storage, this.options);
+    const script = await this.container.get('Script', {
+      definition: {
+        name: `${this.name}:request`,
+        steps: [{
+          object: options
+        }]
+      },
+      options: this.options
+    });
     return script.run(value).then(options => {
       let response;
       const cookies = options.cookies || {};

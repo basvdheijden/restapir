@@ -11,7 +11,7 @@ const Ids = require('../classes/ids');
 const expect = chai.expect;
 chai.use(chaiAsPromised);
 
-describe('Query', () => {
+describe.skip('Query', () => {
   let container;
   let storage;
   let temporary = {};

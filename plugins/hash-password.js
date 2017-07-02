@@ -3,9 +3,9 @@
 const Plugin = require('../classes/plugin');
 const Password = require('../classes/password');
 
-class HashPassword extends Plugin {
-  constructor(models) {
-    super(models);
+class HashPasswordPlugin extends Plugin {
+  constructor(props) {
+    super(props);
 
     // @todo: Need to get config for Password.
     this.password = new Password();
@@ -41,4 +41,4 @@ class HashPassword extends Plugin {
   }
 }
 
-module.exports = HashPassword;
+module.exports = HashPasswordPlugin;

@@ -4,14 +4,12 @@ class Plugin {
   /**
    * Initialize plugin.
    *
-   * @param object models
-   *   Object with all models in storage.
-   * @param object storage
-   *   Reference to Storage object.
+   * @param object props
+   *   Object with models and QueryFactory.
    */
-  constructor(models, storage) {
+  constructor({models, QueryFactory}) {
     this.models = models;
-    this.storage = storage;
+    this.queryFactory = QueryFactory;
   }
 
   /**

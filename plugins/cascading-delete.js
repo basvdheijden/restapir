@@ -6,19 +6,11 @@ const Bluebird = require('bluebird');
 const Plugin = require('../classes/plugin');
 const Query = require('../classes/query');
 
-class CascadingDelete extends Plugin {
-  /**
-   * Initialize plugin.
-   */
-  constructor(models) {
-    super(models);
-    this.analyseModels();
-  }
-
+class CascadingDeletePlugin extends Plugin {
   /**
    * Loop though models to find cascading fields.
    */
-  analyseModels() {
+  async startup() {
     this.data = {};
     this.postprocessors = [];
     this.preprocessors = [];
@@ -129,4 +121,4 @@ class CascadingDelete extends Plugin {
   }
 }
 
-module.exports = CascadingDelete;
+module.exports = CascadingDeletePlugin;

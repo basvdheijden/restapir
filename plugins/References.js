@@ -4,7 +4,7 @@ const _ = require('lodash');
 const Plugin = require('../classes/plugin');
 const Query = require('../classes/query');
 
-class References extends Plugin {
+class ReferencesPlugin extends Plugin {
   getFields() {
     const models = this.models;
     this.fieldData = {};
@@ -53,4 +53,4 @@ class References extends Plugin {
   }
 }
 
-module.exports = References;
+module.exports = ReferencesPlugin;

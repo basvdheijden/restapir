@@ -6,6 +6,8 @@ const Promise = require('bluebird');
 
 const Model = require('../classes/model');
 
+const created = [];
+
 class RethinkDBEngine extends Model {
   constructor({modelData, database, internalDatabase}) {
     super(modelData, database, internalDatabase);
@@ -32,13 +34,16 @@ class RethinkDBEngine extends Model {
     this._ready = ready.then(() => {
       return r.dbList().run(this.conn);
     }).then(databases => {
-      if (databases.indexOf(database.name) < 0) {
+      if (databases.indexOf(database.name) < 0 && created.indexOf(database.name) < 0) {
+        created.push(database.name);
         return r.dbCreate(database.name).run(this.conn);
       }
     }).then(() => {
       return r.db(database.name).tableList().run(this.conn);
     }).then(tables => {
-      if (tables.indexOf(this.name) < 0) {
+      const createdName = `${database.name}.${this.name}`;
+      if (tables.indexOf(this.name) < 0 && created.indexOf(createdName) < 0) {
+        created.push(createdName);
         return r.db(database.name).tableCreate(this.name).run(this.conn);
       }
     }).then(() => {
@@ -59,6 +64,10 @@ class RethinkDBEngine extends Model {
       });
       return Promise.all(promises);
     });
+  }
+
+  async startup() {
+    await this._ready;
   }
 
   ready() {

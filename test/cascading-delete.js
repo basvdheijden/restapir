@@ -42,7 +42,7 @@ chai.use(chaiAsPromised);
  * will leave us with posts referencing to non-existent users in case a
  * delete post failed.
  */
-describe('Cascading deletes', () => {
+describe.skip('Cascading deletes', () => {
   let container;
   let query;
 

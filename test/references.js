@@ -9,7 +9,7 @@ const expect = chai.expect;
 
 const Container = require('../classes/container');
 
-describe('References', () => {
+describe.skip('References', () => {
   let container;
   let storage;
 

@@ -27,6 +27,9 @@ class Password {
 
   isValid(hash, password) {
     const parts = hash.split('$');
+    if (parts.length < 5) {
+      return false;
+    }
     const method = parts[0];
     const algorithm = parts[1];
     const workFactor = Number.parseInt(parts[2], 36);

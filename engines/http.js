@@ -13,8 +13,6 @@ class HttpEngine extends Model {
   constructor({modelData, database, internalDatabase}) {
     super(modelData, database, internalDatabase);
 
-    this.storage = storage;
-
     database = _.defaults(database, {
       parameters: {}
     });

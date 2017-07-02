@@ -43,10 +43,11 @@ class Query {
     return operation;
   }
 
-  getModel(method) {
+  async getModel(method) {
     const parts = method.name.match(/^([a-z]+)?([A-Z][\w]*)$/);
     if (parts) {
-      return this.models.get(parts[2]);
+      const model = this.models.get(parts[2]);
+      return model;
     }
     throw new Error('Model "' + method.name + '" does not exists');
   }
@@ -68,10 +69,10 @@ class Query {
       }
 
       // @todo: The model is already loaded in executeMethod(). Re-use that one.
-      return this.models.has(parts[2]).then(exists => {
+      return Promise.resolve(this.models.has(parts[2])).then(exists => {
         if (exists) {
           let model;
-          return this.models.get(parts[2]).then(_model => {
+          return Promise.resolve(this.models.get(parts[2])).then(_model => {
             model = _model;
 
             if (this.context) {

@@ -5,19 +5,11 @@ const _ = require('lodash');
 const Plugin = require('../classes/plugin');
 const Script = require('../classes/script');
 
-class ProcessScripts extends Plugin {
-  /**
-   * Initialize plugin.
-   */
-  constructor(models, storage) {
-    super(models, storage);
-    this.analyseModels();
-  }
-
+class ProcessScriptsPlugin extends Plugin {
   /**
    * Loop though models to find cascading fields.
    */
-  analyseModels() {
+  async startup() {
     this.data = {};
     this.postprocessors = [];
     this.preprocessors = [];
@@ -70,4 +62,4 @@ class ProcessScripts extends Plugin {
   }
 }
 
-module.exports = ProcessScripts;
+module.exports = ProcessScriptsPlugin;

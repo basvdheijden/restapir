@@ -58,6 +58,21 @@ class Container {
     return dependencies;
   }
 
+  async startupInstance(instance) {
+    if (typeof instance.startup === 'function' && !instance._started) {
+      await instance.startup();
+    }
+    instance._started = true;
+  }
+
+  async startupDependencies(services) {
+    const names = Object.keys(services);
+    for (let i = 0; i < names.length; ++i) {
+      const name = names[i];
+      await this.startupInstance(services[name]);
+    }
+  }
+
   async get(name, params) {
     if (typeof this.services[name] === 'undefined') {
       throw new Error('Unknown service ' + name);
@@ -65,32 +80,25 @@ class Container {
     const service = this.services[name];
     const Service = service.service;
     params = _.defaults(params, await this.getDependencies(service.require));
-    let instance;
-    try {
-      if (service.singleton) {
-        if (service.instance) {
-          return service.instance;
-        }
-        service.instance = new Service(params);
-        if (typeof service.instance.startup === 'function') {
-          await service.instance.startup();
-        }
+    if (service.singleton) {
+      if (service.instance) {
         return service.instance;
       }
-      instance = new Service(params);
-      if (typeof instance.startup === 'function') {
-        await instance.startup();
-      }
-    } catch (err) {
-      console.error('Error initializing ' + name);
-      console.error(err.stack);
-      throw err;
+      service.instance = new Service(params);
+      await this.startupInstance(service.instance);
+      return service.instance;
     }
+    const instance = new Service(params);
+    await this.startupInstance(instance);
     return instance;
   }
 
-  mock(name, instance) {
-    this.services[name].instance = instance;
+  mock(name, service) {
+    if (this.services[name].instance) {
+      throw new Error('Unable to mock ' + name + ': already instantiated');
+    }
+    this.services[name].mocked = true;
+    this.services[name].service = service;
   }
 
   listServices() {

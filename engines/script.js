@@ -3,7 +3,6 @@
 const _ = require('lodash');
 
 const Model = require('../classes/model');
-const ScriptClass = require('../classes/script');
 
 class ScriptEngine extends Model {
   constructor({modelData, database, internalDatabase, Container}) {
