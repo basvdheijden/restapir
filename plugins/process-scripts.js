@@ -3,7 +3,6 @@
 const _ = require('lodash');
 
 const Plugin = require('../classes/plugin');
-const Script = require('../classes/script');
 
 class ProcessScriptsPlugin extends Plugin {
   /**
@@ -23,14 +22,16 @@ class ProcessScriptsPlugin extends Plugin {
     });
   }
 
-  process(model, operation, params, name, context) {
-    return new Script({
+  async process(model, operation, params, name, context) {
+    const script = await this.scriptFactory.create({
       name: `${operation}${model.name}:${name}`,
       steps: this.models[model.name].jsonSchema[name]
-    }, this.storage, {context}).run({
+    }, {context});
+    const response = await script.run({
       operation,
       params
-    }).then(response => response.params);
+    });
+    return response.params;
   }
 
   /**
@@ -61,5 +62,7 @@ class ProcessScriptsPlugin extends Plugin {
     return this.process(model, operation, params, 'postprocess', context);
   }
 }
+
+ProcessScriptsPlugin.require = ['ScriptFactory'];
 
 module.exports = ProcessScriptsPlugin;

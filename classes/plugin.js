@@ -7,9 +7,10 @@ class Plugin {
    * @param object props
    *   Object with models and QueryFactory.
    */
-  constructor({models, QueryFactory}) {
+  constructor({models, QueryFactory, ScriptFactory}) {
     this.models = models;
     this.queryFactory = QueryFactory;
+    this.scriptFactory = ScriptFactory;
   }
 
   /**

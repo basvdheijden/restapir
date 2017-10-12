@@ -5,10 +5,11 @@ const Bluebird = require('bluebird');
 const HttpError = require('http-errors');
 
 const parser = require('./parser');
-const Script = require('./script');
 
 class Query {
-  constructor(models, query, context, args) {
+  constructor(models, query, context, args, ScriptFactory) {
+    this.scriptFactory = ScriptFactory;
+
     // Allow us to omit the second argument.
     if (typeof context !== 'undefined' && typeof args === 'undefined' && context.constructor.name === 'Object') {
       args = context;
@@ -214,16 +215,10 @@ class Query {
     if (params.name) {
       script = this.models.getScript(params.name);
     } else {
-      // @todo: Replace with actual Storage object.
-      const storage = {
-        query(query, args) {
-          return new Query(this.models, query, args).execute();
-        }
-      };
-      script = new Script({
+      script = this.scriptFactory.create({
         name: 'Query',
         steps: params.steps
-      }, storage);
+      });
     }
     return Promise.resolve(script).then(script => {
       if (params.debug) {

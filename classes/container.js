@@ -74,6 +74,9 @@ class Container {
   }
 
   async get(name, params) {
+    if (name === 'Container') {
+      return this;
+    }
     if (typeof this.services[name] === 'undefined') {
       throw new Error('Unknown service ' + name);
     }

@@ -27,7 +27,7 @@ class Script {
    * @param object options
    *   Script options.
    */
-  constructor({definition, options, QueryFactory, Log, ScriptFactory}) {
+  constructor({definition, options, QueryFactory, Log, ScriptFactory, Config, Models}) {
     if (typeof definition.name !== 'string') {
       throw new Error('Missing name for script');
     }
@@ -46,16 +46,24 @@ class Script {
 
     this.log = Log;
     this.scriptFactory = ScriptFactory;
+    this.models = Models;
+    this.config = Config;
 
     this.running = false;
     this.step = 0;
     this.executedSteps = 0;
 
     if (typeof definition.schedule === 'string') {
-      this.scheduledJob = Schedule.scheduleJob(definition.schedule, () => {
-      //   if (!this.running) {
-      //     this.run({});
-      //   }
+      this.scheduledJob = Schedule.scheduleJob(definition.schedule, async () => {
+        if (this.running) {
+          return;
+        }
+        try {
+          await this.run({});
+        } catch (err) {
+          this.running = false;
+          console.error(`Error executing scheduled script "${definition.name}": ${err.message}`);
+        }
       });
     }
 
@@ -207,10 +215,7 @@ class Script {
     if (typeof options !== 'string') {
       throw new Error('Value for "script" method must be a string');
     }
-    if (typeof this.storage.models.scripts[options] === 'undefined') {
-      throw new Error('Script not found: ' + options);
-    }
-    const script = this.storage.models.scripts[options].clone();
+    const script = this.models.getScript(options).clone();
     return script.run(value);
   }
 
@@ -222,7 +227,7 @@ class Script {
       throw new Error('Only config inside /storage is accessible');
     }
     const config = {
-      storage: this.storage.options
+      storage: this.config.get('/storage')
     };
     return JsonPointer.get(config, options);
   }
@@ -977,19 +982,18 @@ class Script {
     return MathJS.eval(options, scope);
   }
 
-  _eval(value, options) {
-    return this.shorthand(value, options).then(steps => {
-      const script = new Script({
-        name: `${this.name}:eval`,
-        steps
-      }, this.storage, {
-        context: this.options.context
-      });
-      return script.run(value);
+  async _eval(value, options) {
+    const steps = await this.shorthand(value, options);
+    const script = await this.scriptFactory.create({
+      name: `${this.name}:eval`,
+      steps
+    }, {
+      context: this.options.context
     });
+    return script.run(value);
   }
 }
 
-Script.require = ['QueryFactory', 'Log', 'ScriptFactory'];
+Script.require = ['QueryFactory', 'Log', 'ScriptFactory', 'Config', 'Models'];
 
 module.exports = Script;

@@ -138,7 +138,7 @@ describe('Script', () => {
         testContainer = new Container();
         await testContainer.startup();
         const config = await testContainer.get('Config');
-        config.set(_.defaults({port: 10024}, configObject));
+        config.set(_.defaultsDeep({port: 10024, storage: {scriptsDir: 'scripts'}}, configObject));
         testContainer.mock('QueryFactory', class QueryFactory {
           async query(query, context, args) {
             return queryMock(query, context, args);
@@ -1040,7 +1040,7 @@ describe('Script', () => {
    * This lowers the system resources used, but increases the latency before
    * new jobs are started.
    */
-  it.skip('will automatically execute scheduled scripts', async () => {
+  it('will automatically execute scheduled scripts', async () => {
     let userId;
     return query('{user: createUser(name: "John", mail: "john@example.com") { id }}').then(result => {
       userId = result.user.id;
@@ -1103,7 +1103,7 @@ describe('Script', () => {
    * Running scripts from queries is currently only possible for context-free
    * queries.
    */
-  it.skip('can execute named script from query', async () => {
+  it('can execute named script from query', async () => {
     return query(`{
       script(name: "Uppercase", data: "test")
     }`).then(result => {
@@ -1112,7 +1112,7 @@ describe('Script', () => {
     });
   });
 
-  it.skip('can execute script provided in query', async () => {
+  it('can execute script provided in query', async () => {
     return query(`{
       script(steps: [{camelCase: {}}], data: "lorem ipsum")
     }`).then(result => {
@@ -1121,7 +1121,7 @@ describe('Script', () => {
     });
   });
 
-  it.skip('can return debug information for query', async () => {
+  it('can return debug information for query', async () => {
     return query(`{
       script(name: "Uppercase", data: "test", debug: true)
     }`).then(result => {
@@ -1159,7 +1159,7 @@ describe('Script', () => {
     });
   });
 
-  it.skip('will execute postprocessor scripts in model', async () => {
+  it('will execute postprocessor scripts in model', async () => {
     return query('{createPost(title:"test"){id title}}').then(result => {
       expect(result.createPost.title).to.equal('TEST');
     });
@@ -1183,7 +1183,7 @@ describe('Script', () => {
     });
   });
 
-  it.skip('can read data with Script engine', async () => {
+  it('can read data with Script engine', async () => {
     return query('{listWebsiteItem { id name }}').then(result => {
       expect(result.listWebsiteItem).to.have.length(10);
       expect(result.listWebsiteItem[0]).to.have.property('id');
@@ -1191,7 +1191,7 @@ describe('Script', () => {
     });
   });
 
-  it.skip('can read config', async () => {
+  it('can read config', async () => {
     const script = await createScript({
       name: 'Testscript',
       steps: [{
@@ -1662,7 +1662,7 @@ describe('Script', () => {
    *
    * Output: ``"bar"``.
    */
-  it.skip('can run script with eval', async () => {
+  it('can run script with eval', async () => {
     const script = await createScript({
       name: 'Testscript',
       steps: [{
@@ -1680,7 +1680,7 @@ describe('Script', () => {
     });
   });
 
-  it.skip('can provide debug information', async () => {
+  it('can provide debug information', async () => {
     const steps = [{
       static: {foo: 'bar'}
     }, {
@@ -1688,7 +1688,7 @@ describe('Script', () => {
         baz: '/foo'
       }
     }];
-    const script = await createScript({name: 'Testscript', steps}, {}, {debug: true});
+    const script = await createScript({name: 'Testscript', steps}, {debug: true});
     return script.run({}).then(result => {
       // The result is split up in 'output', 'definition' and 'children'.
       expect(result).to.have.property('output');
@@ -1711,11 +1711,11 @@ describe('Script', () => {
     });
   });
 
-  it.skip('can run a named script', async () => {
+  it('can run a named script', async () => {
     const steps = [{
       script: 'Uppercase'
     }];
-    const script = await createScript({name: 'Testscript', steps}, app.storage);
+    const script = await createScript({name: 'Testscript', steps});
     return script.run('foo').then(result => {
       expect(result).to.equal('FOO');
     });
