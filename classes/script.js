@@ -1,6 +1,7 @@
 'use strict';
 
 const Crypto = require('crypto');
+const QueryString = require('querystring');
 
 const _ = require('lodash');
 const $ = require('cheerio');
@@ -448,18 +449,22 @@ class Script {
       throw new Error('Value of "object" functions must be an object');
     }
     let output = {};
-    let retainData = false;
+    let retainData = null;
     return Promise.all(Object.keys(options).map(key => {
       if (key === '...') {
-        retainData = true;
+        if (options[key] === '...') {
+          retainData = value;
+        } else {
+          retainData = JsonPointer.get(value, options[key]);
+        }
         return null;
       }
       return this.shorthand(value, options[key], `${key} property`).then(result => {
         output[key] = result;
       });
     })).then(() => {
-      if (retainData && typeof value === 'object' && value !== null) {
-        output = _.defaults(output, value);
+      if (typeof retainData === 'object' && retainData !== null) {
+        output = _.defaults(output, retainData);
       }
       return output;
     });
@@ -775,6 +780,17 @@ class Script {
 
   _toBase64(value) {
     return new Buffer(value).toString('base64');
+  }
+
+  _toFormData(value) {
+    return QueryString.stringify(value);
+  }
+
+  _fromFormData(value) {
+    if (typeof value === 'string') {
+      return QueryString.parse(value);
+    }
+    return {};
   }
 
   _fromXml(value) {

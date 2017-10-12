@@ -2,6 +2,7 @@
 'use strict';
 
 const Crypto = require('crypto');
+const QueryString = require('querystring');
 
 const _ = require('lodash');
 const chai = require('chai');
@@ -1187,6 +1188,23 @@ describe('Script', () => {
     });
   });
 
+  it('can retain data from path in object transformation', async () => {
+    const script = await createScript({
+      name: 'Testscript',
+      steps: [{
+        object: {
+          foo: '/bar',
+          '...': '/input'
+        }
+      }]
+    });
+    const result = await script.run({bar: 'baz', input: {baz: 'qux'}});
+    expect(result).to.deep.equal({
+      foo: 'baz',
+      baz: 'qux'
+    });
+  });
+
   it('can read data with Script engine', async () => {
     return query('{listWebsiteItem { id name }}').then(result => {
       expect(result.listWebsiteItem).to.have.length(10);
@@ -1323,6 +1341,34 @@ describe('Script', () => {
     }, app.storage);
     return script.run(new Buffer('test').toString('base64')).then(result => {
       expect(result).to.equal('test');
+    });
+  });
+
+  it('can convert text to form-data', async () => {
+    const script = await createScript({
+      name: 'Testscript',
+      steps: [{
+        toFormData: {}
+      }]
+    });
+    const result = await script.run({name: 'John', age: 34});
+    expect(QueryString.parse(result)).to.deep.equal({
+      name: 'John',
+      age: '34'
+    });
+  });
+
+  it('can convert form-data from object', async () => {
+    const script = await createScript({
+      name: 'Testscript',
+      steps: [{
+        fromFormData: {}
+      }]
+    });
+    const result = await script.run(QueryString.stringify({name: 'John', age: 34}));
+    expect(result).to.deep.equal({
+      name: 'John',
+      age: '34'
     });
   });
 
