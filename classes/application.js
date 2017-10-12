@@ -8,7 +8,7 @@ const HttpCache = require('./http-cache.js');
 const Authentication = require('./authentication.js');
 
 class Application {
-  constructor({Config, HttpServer, QueryFactory, Log}) {
+  constructor({Config, HttpServer, QueryFactory, Log, Models}) {
     const config = _.defaults(Config.get(), {
       port: 80,
       queryFactory: {},
@@ -25,7 +25,7 @@ class Application {
     this.instances = {};
     this.instances.authentication = new Authentication(this.app, this.queryFactory, config.authentication);
     if (config.files.enabled) {
-      this.instances.files = new FilesApi(this.app, this.queryFactory, config.files);
+      this.instances.files = new FilesApi({HttpServer, QueryFactory, Models});
     }
     this.instances.httpCache = new HttpCache(this.app, this.queryFactory, config.httpCache);
 
@@ -59,7 +59,8 @@ Application.require = [
   'QueryFactory',
   'Log',
   'GraphqlApi',
-  'ScriptApi'
+  'ScriptApi',
+  'Models'
 ];
 
 module.exports = Application;

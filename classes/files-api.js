@@ -11,24 +11,25 @@ const Dicer = require('dicer');
 const HttpError = require('http-errors');
 
 class FilesApi {
-  constructor(app, storage) {
-    this.app = app;
-    this.storage = storage;
+  constructor({HttpServer, Models, QueryFactory}) {
+    this.models = Models;
+    this.queryFactory = QueryFactory;
 
-    app.process('PUT /file/<model:string>', (model, request, context) => {
+    HttpServer.process('PUT /file/<model:string>', (model, request, context) => {
       let id;
       let directory;
       let modelInstance;
-      return this.storage.models.get(model).then(model => {
-        if (typeof model === 'undefined') {
-          throw new HttpError(404, 'Model not found');
-        }
-        modelInstance = model;
+      try {
+        modelInstance = this.models.get(model);
+      } catch (err) {
+        throw new HttpError(404, 'Model not found');
+      }
+      return Promise.resolve().then(() => {
         const query = this.buildQuery(request.headers, modelInstance);
-        return this.storage.query(query.query, context, query.args);
+        return this.queryFactory.query(query.query, context, query.args);
       }).then(result => {
         id = result.file.id;
-        return this.storage.models.get(model);
+        return this.models.get(model);
       }).then(_model => {
         modelInstance = _model;
         directory = modelInstance.getDirectory(id);
@@ -47,19 +48,19 @@ class FilesApi {
       });
     });
 
-    app.prevalidation('POST /file/<model:string>', request => {
+    HttpServer.prevalidation('POST /file/<model:string>', request => {
       if (!request.multipartBoundary) {
         throw new HttpError(400, 'Request body is not a multipart message');
       }
     });
-    app.process('POST /file/<model:string>', (model, request, context) => {
+    HttpServer.process('POST /file/<model:string>', (model, request, context) => {
       let id;
       let directory;
       let modelInstance;
       const query = `{file:create${model} {id}}`;
-      return this.storage.query(query, context).then(result => {
+      return this.queryFactory.query(query, context).then(result => {
         id = result.file.id;
-        return this.storage.models.get(model);
+        return this.models.get(model);
       }).then(_model => {
         modelInstance = _model;
         directory = modelInstance.getDirectory(id);
@@ -74,16 +75,16 @@ class FilesApi {
       });
     });
 
-    app.process('GET /file/<model:string>/<id:string>', (model, id, context, request) => {
+    HttpServer.process('GET /file/<model:string>/<id:string>', (model, id, context, request) => {
       let modelInstance;
       let filename;
       const query = `{file:${model}(id:$id){id}}`;
-      return this.storage.query(query, context, {id}).then(result => {
+      return this.queryFactory.query(query, context, {id}).then(result => {
         if (result.file === null) {
           throw new HttpError(404);
         }
         id = result.file.id;
-        return this.storage.models.get(model);
+        return this.models.get(model);
       }).then(_model => {
         modelInstance = _model;
         const directory = modelInstance.getDirectory(id);

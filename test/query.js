@@ -11,9 +11,9 @@ const Ids = require('../classes/ids');
 const expect = chai.expect;
 chai.use(chaiAsPromised);
 
-describe.skip('Query', () => {
+describe('Query', () => {
   let container;
-  let storage;
+  let queryFactory;
   let temporary = {};
 
   before(async () => {
@@ -40,7 +40,7 @@ describe.skip('Query', () => {
         }
       }
     });
-    storage = await container.get('Storage');
+    queryFactory = await container.get('QueryFactory');
   });
 
   after(async () => {
@@ -50,7 +50,7 @@ describe.skip('Query', () => {
   it('fails on misformatted queries', () => {
     return new Promise(() => {
       const query = `{...}`;
-      return storage.query(query);
+      return queryFactory.query(query);
     }).then(() => {
       throw new Error('should be rejected');
     }).catch(err => {
@@ -62,7 +62,7 @@ describe.skip('Query', () => {
   it('fails on unknown operations', () => {
     return Promise.resolve().then(() => {
       const query = `{writePost}`;
-      return storage.query(query);
+      return queryFactory.query(query);
     }).then(() => {
       throw new Error('should be rejected');
     }).catch(err => {
@@ -77,7 +77,7 @@ describe.skip('Query', () => {
         id
       }
     }`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       expect(result.createPost).to.have.property('id');
       temporary = {id: result.createPost.id};
     });
@@ -90,7 +90,7 @@ describe.skip('Query', () => {
       }
     }`;
     const id = temporary.id;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result.readPost).to.have.property('teststring', 'This is a test');
     });
   });
@@ -101,7 +101,7 @@ describe.skip('Query', () => {
         id
       }
     }`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       expect(result.createPost).to.have.property('id');
       temporary = {id: result.createPost.id};
     });
@@ -114,7 +114,7 @@ describe.skip('Query', () => {
       }
     }`;
     const id = temporary.id;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result.readPost).to.have.property('testint', 123);
     });
   });
@@ -125,7 +125,7 @@ describe.skip('Query', () => {
         id
       }
     }`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       expect(result.createPost).to.have.property('id');
       temporary = {id: result.createPost.id};
     });
@@ -138,7 +138,7 @@ describe.skip('Query', () => {
       }
     }`;
     const id = temporary.id;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result.readPost).to.have.property('testfloat', 1.23);
     });
   });
@@ -149,7 +149,7 @@ describe.skip('Query', () => {
         id
       }
     }`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       expect(result.createPost).to.have.property('id');
       temporary = {id: result.createPost.id};
     });
@@ -162,7 +162,7 @@ describe.skip('Query', () => {
       }
     }`;
     const id = temporary.id;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result.readPost).to.have.property('testobject');
       expect(result.readPost.testobject).to.deep.equal({foo: 'bar'});
     });
@@ -174,7 +174,7 @@ describe.skip('Query', () => {
         id
       }
     }`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       expect(result.createPost).to.have.property('id');
       temporary = {id: result.createPost.id};
     });
@@ -187,7 +187,7 @@ describe.skip('Query', () => {
       }
     }`;
     const id = temporary.id;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result.readPost).to.have.property('testlist');
       expect(result.readPost.testlist).to.deep.equal([{}, {}]);
     });
@@ -199,7 +199,7 @@ describe.skip('Query', () => {
         id
       }
     }`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       expect(result.createPost).to.have.property('id');
       temporary = {id: result.createPost.id};
     });
@@ -212,7 +212,7 @@ describe.skip('Query', () => {
       }
     }`;
     const id = temporary.id;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result.readPost).to.have.property('testboolean');
       expect(result.readPost.testboolean).to.equal(true);
     });
@@ -225,7 +225,7 @@ describe.skip('Query', () => {
       }
     }`;
     const id = temporary.id;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result).to.have.property('Post');
       expect(result.Post).to.have.property('id');
     });
@@ -238,7 +238,7 @@ describe.skip('Query', () => {
       }
     }`;
     const id = temporary.id;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result).to.have.property('p');
       expect(result.p).to.have.property('id');
     });
@@ -252,7 +252,7 @@ describe.skip('Query', () => {
       }
     }`;
     const id = temporary.id;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result.readPost).to.have.property('__typename', 'Post');
     });
   });
@@ -263,7 +263,7 @@ describe.skip('Query', () => {
         id
       }
     }`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       expect(result.createPost).to.have.property('id');
       temporary = {id: result.createPost.id};
     });
@@ -276,7 +276,7 @@ describe.skip('Query', () => {
       }
     }`;
     const id = temporary.id;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result.readPost).to.have.property('testobject');
       expect(result.readPost.testobject).to.deep.equal({});
     });
@@ -289,11 +289,11 @@ describe.skip('Query', () => {
       }
     }`;
     const id = temporary.id;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result.updatePost).to.have.property('testobject', null);
       // Also check read aftwerwards.
       const query = '{Post(id:$id){testobject}}';
-      return storage.query(query, {id});
+      return queryFactory.query(query, {id});
     }).then(result => {
       expect(result.Post).to.have.property('testobject', null);
     });
@@ -301,14 +301,14 @@ describe.skip('Query', () => {
 
   it('will reject deleting required fields in update', () => {
     const query = '{story:createStory(title:"testtile",body:"testbody"){id}}';
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       const query = `{
         updateStory(id:$id,title:undefined) {
           id title body
         }
       }`;
       const id = result.story.id;
-      return storage.query(query, {id});
+      return queryFactory.query(query, {id});
     }).then(() => {
       throw new Error('should be rejected');
     }).catch(err => {
@@ -325,7 +325,7 @@ describe.skip('Query', () => {
       }
     }`;
     const id = temporary.id;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result.readPost).to.have.property('title');
       expect(result.readPost.title).to.equal(null);
     });
@@ -334,7 +334,7 @@ describe.skip('Query', () => {
   it('will reject invalid data in create', () => {
     return Promise.resolve().then(() => {
       const query = '{story:createStory(title:234){id}}';
-      return storage.query(query);
+      return queryFactory.query(query);
     }).then(() => {
       throw new Error('should be rejected');
     }).catch(err => {
@@ -347,7 +347,7 @@ describe.skip('Query', () => {
   it('will reject invalid data in read', () => {
     return Promise.resolve().then(() => {
       const query = '{story:readStory(id:{}){id}}';
-      return storage.query(query);
+      return queryFactory.query(query);
     }).then(() => {
       throw new Error('should be rejected');
     }).catch(err => {
@@ -359,14 +359,14 @@ describe.skip('Query', () => {
 
   it('will reject invalid data in update', () => {
     const query = '{story:createStory(title:"Test",body:"Lorem ipsum"){id}}';
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       const query = `{
         updateStory(id:$id,title:123) {
           id title body
         }
       }`;
       const id = result.story.id;
-      return storage.query(query, {id});
+      return queryFactory.query(query, {id});
     }).then(() => {
       throw new Error('should be rejected');
     }).catch(err => {
@@ -379,7 +379,7 @@ describe.skip('Query', () => {
   it('will reject invalid data in delete', () => {
     return Promise.resolve().then(() => {
       const query = '{story:deleteStory(id:{}){id}}';
-      return storage.query(query);
+      return queryFactory.query(query);
     }).then(() => {
       throw new Error('should be rejected');
     }).catch(err => {
@@ -392,13 +392,13 @@ describe.skip('Query', () => {
   it('can handle UTF-8 data in query', () => {
     // \u00A7 is the paragraph sign, from the Latin-1 supplement.
     const query = '{story:createStory(title:"Test",body:"\u00A7"){id body}}';
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       expect(result.story.body).to.equal('\xa7');
       const query = `{
         story:Story(id:$id) { body }
       }`;
       const id = result.story.id;
-      return storage.query(query, {id});
+      return queryFactory.query(query, {id});
     }).then(result => {
       expect(result.story.body).to.equal('\xa7');
     }).done();
@@ -407,13 +407,13 @@ describe.skip('Query', () => {
   it('can handle unicode sequences in query', () => {
     // \u00A7 is the paragraph sign, from the Latin-1 supplement.
     const query = '{story:createStory(title:"Test",body:"\\u00A7"){id body}}';
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       expect(result.story.body).to.equal('\xa7');
       const query = `{
         story:Story(id:$id) { body }
       }`;
       const id = result.story.id;
-      return storage.query(query, {id});
+      return queryFactory.query(query, {id});
     }).then(result => {
       expect(result.story.body).to.equal('\xa7');
     }).done();
@@ -423,13 +423,13 @@ describe.skip('Query', () => {
     // \u00A7 is the paragraph sign, from the Latin-1 supplement.
     const query = '{story:createStory(title:"Test",body:$body){id body}}';
     const args = {body: '\u00A7'};
-    return storage.query(query, args).then(result => {
+    return queryFactory.query(query, args).then(result => {
       expect(result.story.body).to.equal('\xa7');
       const query = `{
         story:Story(id:$id) { body }
       }`;
       const id = result.story.id;
-      return storage.query(query, {id});
+      return queryFactory.query(query, {id});
     }).then(result => {
       expect(result.story.body).to.equal('\xa7');
     }).done();
@@ -438,14 +438,14 @@ describe.skip('Query', () => {
   it('can handle question marks in parameters', () => {
     const query = '{story:createStory(title:$title,body:$body){id title body}}';
     const args = {title: '???', body: 'Hello world?'};
-    return storage.query(query, args).then(result => {
+    return queryFactory.query(query, args).then(result => {
       expect(result.story.title).to.equal('???');
       expect(result.story.body).to.equal('Hello world?');
       const query = `{
         story:Story(id:$id) { title body }
       }`;
       const id = result.story.id;
-      return storage.query(query, {id});
+      return queryFactory.query(query, {id});
     }).then(result => {
       expect(result.story.title).to.equal('???');
       expect(result.story.body).to.equal('Hello world?');
@@ -479,7 +479,7 @@ describe.skip('Query', () => {
   it('will query when providing too few arguments', () => {
     const query = '{story:createStory(title:$title,body:$body){id}}';
     return Promise.resolve().then(() => {
-      return storage.query(query, {title: 'test'});
+      return queryFactory.query(query, {title: 'test'});
     }).then(() => {
       throw new Error('should be rejected');
     }).catch(err => {
@@ -524,14 +524,14 @@ describe.skip('Query', () => {
         id title
       }
     }`;
-    return storage.query(countQuery).then(result => {
+    return queryFactory.query(countQuery).then(result => {
       count = result.countPost;
-      return storage.query(query);
+      return queryFactory.query(query);
     }).then(result => {
       // Id looks like a real id, but is the obfuscation of 0.
       expect(result.createPost).to.have.property('id', new Ids(0).id);
     }).delay(10).then(() => {
-      return storage.query(countQuery);
+      return queryFactory.query(countQuery);
     }).then(result => {
       expect(result.countPost).to.equal(count);
     });
@@ -539,11 +539,11 @@ describe.skip('Query', () => {
 
   it('can dry execute update operation', () => {
     let id;
-    return storage.query('{createPost(title:"foo"){id}}').then(result => {
+    return queryFactory.query('{createPost(title:"foo"){id}}').then(result => {
       id = result.createPost.id;
-      return storage.query('dry {updatePost(id:$id,title:"bar"){id}}', {id});
+      return queryFactory.query('dry {updatePost(id:$id,title:"bar"){id}}', {id});
     }).delay(10).then(() => {
-      return storage.query('{Post(id:$id){title}}', {id});
+      return queryFactory.query('{Post(id:$id){title}}', {id});
     }).then(result => {
       expect(result.Post.title).to.equal('foo');
     });
@@ -551,11 +551,11 @@ describe.skip('Query', () => {
 
   it('can dry execute delete operation', () => {
     let id;
-    return storage.query('{createPost(title:"foo"){id}}').then(result => {
+    return queryFactory.query('{createPost(title:"foo"){id}}').then(result => {
       id = result.createPost.id;
-      return storage.query('dry {deletePost(id:$id)}', {id});
+      return queryFactory.query('dry {deletePost(id:$id)}', {id});
     }).delay(10).then(() => {
-      return storage.query('{Post(id:$id){title}}', {id});
+      return queryFactory.query('{Post(id:$id){title}}', {id});
     }).then(result => {
       expect(result.Post.title).to.equal('foo');
     });
@@ -563,9 +563,9 @@ describe.skip('Query', () => {
 
   it('will return real results when executing dry read', () => {
     let id;
-    return storage.query('{createPost(title:"Test!"){id}}').then(result => {
+    return queryFactory.query('{createPost(title:"Test!"){id}}').then(result => {
       id = result.createPost.id;
-      return storage.query('{Post(id:$id){title}}', {id});
+      return queryFactory.query('{Post(id:$id){title}}', {id});
     }).then(result => {
       expect(result.Post.title).to.equal('Test!');
     });
@@ -573,7 +573,7 @@ describe.skip('Query', () => {
 
   it('will return validation errors on dry-run', () => {
     return Promise.resolve().then(() => {
-      return storage.query('{createPost(teststring:123)}');
+      return queryFactory.query('{createPost(teststring:123)}');
     }).then(() => {
       throw new Error('Query passed');
     }).catch(() => {});
@@ -581,11 +581,11 @@ describe.skip('Query', () => {
 
   it('will apply filter in list', () => {
     let id;
-    return storage.query('{createPost(testint: 10){id}}').then(result => {
+    return queryFactory.query('{createPost(testint: 10){id}}').then(result => {
       id = result.createPost.id;
-      return storage.query('{createPost(testint: 11){id}}');
+      return queryFactory.query('{createPost(testint: 11){id}}');
     }).then(() => {
-      return storage.query('{listPost(testint: 10){id}}');
+      return queryFactory.query('{listPost(testint: 10){id}}');
     }).then(result => {
       expect(result.listPost).to.have.length(1);
       expect(result.listPost[0].id).to.equal(id);
@@ -594,11 +594,11 @@ describe.skip('Query', () => {
 
   it('will apply two unindexed filters in list', () => {
     let id;
-    return storage.query('{createPost(testint: 10, teststring: "testindex"){id}}').then(result => {
+    return queryFactory.query('{createPost(testint: 10, teststring: "testindex"){id}}').then(result => {
       id = result.createPost.id;
-      return storage.query('{createPost(testint: 11, teststring: "testindex"){id}}');
+      return queryFactory.query('{createPost(testint: 11, teststring: "testindex"){id}}');
     }).then(() => {
-      return storage.query('{listPost(testint: 10, teststring: "testindex"){id}}');
+      return queryFactory.query('{listPost(testint: 10, teststring: "testindex"){id}}');
     }).then(result => {
       expect(result.listPost).to.have.length(1);
       expect(result.listPost[0].id).to.equal(id);
@@ -607,15 +607,15 @@ describe.skip('Query', () => {
 
   it('will apply two indexed filters in list', () => {
     let id;
-    return storage.query('{createPost(indexed1: 1, indexed2: 1){id}}').then(result => {
+    return queryFactory.query('{createPost(indexed1: 1, indexed2: 1){id}}').then(result => {
       id = result.createPost.id;
-      return storage.query('{createPost(indexed1: 1, indexed2: 2){id}}');
+      return queryFactory.query('{createPost(indexed1: 1, indexed2: 2){id}}');
     }).then(() => {
-      return storage.query('{createPost(indexed1: 2, indexed2: 1){id}}');
+      return queryFactory.query('{createPost(indexed1: 2, indexed2: 1){id}}');
     }).then(() => {
-      return storage.query('{createPost(indexed1: 2, indexed2: 2){id}}');
+      return queryFactory.query('{createPost(indexed1: 2, indexed2: 2){id}}');
     }).then(() => {
-      return storage.query('{listPost(indexed1: 1, indexed2: 1){id}}');
+      return queryFactory.query('{listPost(indexed1: 1, indexed2: 1){id}}');
     }).then(result => {
       expect(result.listPost).to.have.length(1);
       expect(result.listPost[0].id).to.equal(id);
@@ -624,11 +624,11 @@ describe.skip('Query', () => {
 
   it('will apply indexed filter and unindexed filter in list', () => {
     let id;
-    return storage.query('{createPost(testint: 1, indexed2: 1){id}}').then(result => {
+    return queryFactory.query('{createPost(testint: 1, indexed2: 1){id}}').then(result => {
       id = result.createPost.id;
-      return storage.query('{createPost(testint: 1, indexed2: 2){id}}');
+      return queryFactory.query('{createPost(testint: 1, indexed2: 2){id}}');
     }).then(() => {
-      return storage.query('{listPost(testint: 1, indexed2: 1){id}}');
+      return queryFactory.query('{listPost(testint: 1, indexed2: 1){id}}');
     }).then(result => {
       expect(result.listPost).to.have.length(1);
       expect(result.listPost[0].id).to.equal(id);
@@ -637,21 +637,21 @@ describe.skip('Query', () => {
 
   it('will apply two indexed filters and unindexed filter in list', () => {
     let id;
-    return storage.query('{createPost(indexed1: 1, indexed2: 1, testboolean: true){id}}').then(result => {
+    return queryFactory.query('{createPost(indexed1: 1, indexed2: 1, testboolean: true){id}}').then(result => {
       id = result.createPost.id;
-      return storage.query('{createPost(indexed1: 1, indexed2: 2, testboolean: true){id}}');
+      return queryFactory.query('{createPost(indexed1: 1, indexed2: 2, testboolean: true){id}}');
     }).then(() => {
-      return storage.query('{createPost(indexed1: 2, indexed2: 1, testboolean: true){id}}');
+      return queryFactory.query('{createPost(indexed1: 2, indexed2: 1, testboolean: true){id}}');
     }).then(() => {
-      return storage.query('{createPost(indexed1: 2, indexed2: 2, testboolean: true){id}}');
+      return queryFactory.query('{createPost(indexed1: 2, indexed2: 2, testboolean: true){id}}');
     }).then(() => {
-      return storage.query('{listPost(indexed1: 1, indexed2: 1, testboolean: false){id}}');
+      return queryFactory.query('{listPost(indexed1: 1, indexed2: 1, testboolean: false){id}}');
     }).then(() => {
-      return storage.query('{createPost(indexed1: 2, indexed2: 1, testboolean: false){id}}');
+      return queryFactory.query('{createPost(indexed1: 2, indexed2: 1, testboolean: false){id}}');
     }).then(() => {
-      return storage.query('{createPost(indexed1: 2, indexed2: 2, testboolean: false){id}}');
+      return queryFactory.query('{createPost(indexed1: 2, indexed2: 2, testboolean: false){id}}');
     }).then(() => {
-      return storage.query('{listPost(indexed1: 1, indexed2: 1, testboolean: true){id}}');
+      return queryFactory.query('{listPost(indexed1: 1, indexed2: 1, testboolean: true){id}}');
     }).then(result => {
       expect(result.listPost).to.have.length(1);
       expect(result.listPost[0].id).to.equal(id);

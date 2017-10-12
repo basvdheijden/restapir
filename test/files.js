@@ -13,9 +13,9 @@ const Container = require('../classes/container');
 const expect = chai.expect;
 chai.use(chaiAsPromised);
 
-describe.skip('Files', () => {
+describe('Files', () => {
   let container;
-  let storage;
+  let queryFactory;
 
   const uri = 'http://localhost:10023';
 
@@ -42,8 +42,8 @@ describe.skip('Files', () => {
         }
       }
     });
-    const app = await container.get('Application');
-    storage = app.storage;
+    await container.get('Application');
+    queryFactory = await container.get('QueryFactory');
   });
 
   after(async () => {
@@ -52,9 +52,9 @@ describe.skip('Files', () => {
 
   it('can create file', () => {
     let id;
-    return storage.query('{createFile{id}}').then(result => {
+    return queryFactory.query('{createFile{id}}').then(result => {
       id = result.createFile.id;
-      return storage.query('{File(id:$id){id,finished}}', {id});
+      return queryFactory.query('{File(id:$id){id,finished}}', {id});
     }).then(result => {
       expect(result.File).to.deep.equal({
         id,
@@ -65,9 +65,9 @@ describe.skip('Files', () => {
 
   it('can add metadata to file', () => {
     let id;
-    return storage.query('{createFile(filename:"test.txt",description:"Testfile"){id}}').then(result => {
+    return queryFactory.query('{createFile(filename:"test.txt",description:"Testfile"){id}}').then(result => {
       id = result.createFile.id;
-      return storage.query('{File(id:$id){id,filename,description}}', {id});
+      return queryFactory.query('{File(id:$id){id,filename,description}}', {id});
     }).then(result => {
       expect(result.File.id).to.equal(id);
       expect(result.File.filename).to.equal('test.txt');
@@ -77,15 +77,15 @@ describe.skip('Files', () => {
 
   it('can update metadata', () => {
     let id;
-    return storage.query('{createFile(filename:"test.txt",description:"Testfile"){id}}').then(result => {
+    return queryFactory.query('{createFile(filename:"test.txt",description:"Testfile"){id}}').then(result => {
       id = result.createFile.id;
-      return storage.query('{File(id:$id){id,filename,description}}', {id});
+      return queryFactory.query('{File(id:$id){id,filename,description}}', {id});
     }).then(result => {
       expect(result.File.filename).to.equal('test.txt');
       expect(result.File.description).to.equal('Testfile');
-      return storage.query('{updateFile(id:$id,filename:"test2.txt"){id,filename}}', {id});
+      return queryFactory.query('{updateFile(id:$id,filename:"test2.txt"){id,filename}}', {id});
     }).then(() => {
-      return storage.query('{File(id:$id){id,filename,description}}', {id});
+      return queryFactory.query('{File(id:$id){id,filename,description}}', {id});
     }).then(result => {
       expect(result.File.filename).to.equal('test2.txt');
       expect(result.File.description).to.equal('Testfile');
@@ -157,7 +157,7 @@ describe.skip('Files', () => {
     return Needle.putAsync(uri + '/file/File', data, options).then(response => {
       expect(response.statusCode).to.equal(200);
       id = response.body.id;
-      return storage.query('{File(id:$id){description,number}}', {id});
+      return queryFactory.query('{File(id:$id){description,number}}', {id});
     }).then(result => {
       expect(result.File.description).to.equal('Lorem ipsum');
       expect(result.File.number).to.equal(34);

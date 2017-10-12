@@ -42,7 +42,7 @@ chai.use(chaiAsPromised);
  * will leave us with posts referencing to non-existent users in case a
  * delete post failed.
  */
-describe.skip('Cascading deletes', () => {
+describe('Cascading deletes', () => {
   let container;
   let query;
 
@@ -71,8 +71,8 @@ describe.skip('Cascading deletes', () => {
         }
       }
     });
-    const app = await container.get('Application');
-    query = app.storage.query.bind(app.storage);
+    const queryFactory = await container.get('QueryFactory');
+    query = queryFactory.query.bind(queryFactory);
   });
 
   after(async () => {

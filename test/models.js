@@ -9,9 +9,10 @@ const expect = chai.expect;
 
 const Container = require('../classes/container');
 
-describe.skip('Storage', () => {
+describe('Models', () => {
   let container;
-  let storage;
+  let models;
+  let queryFactory;
   let temporary = {};
 
   before(async () => {
@@ -38,7 +39,8 @@ describe.skip('Storage', () => {
         }
       }
     });
-    storage = await container.get('Storage');
+    models = await container.get('Models');
+    queryFactory = await container.get('QueryFactory');
   });
 
   after(async () => {
@@ -46,15 +48,11 @@ describe.skip('Storage', () => {
   });
 
   it('knows that is has a User model', () => {
-    return storage.models.has('User').then(result => {
-      expect(result).to.equal(true);
-    });
+    expect(models.has('User')).to.equal(true);
   });
 
   it('knows that is does not have a People model', () => {
-    return storage.models.has('People').then(result => {
-      expect(result).to.equal(false);
-    });
+    expect(models.has('People')).to.equal(false);
   });
 
   it('can create a User', () => {
@@ -63,7 +61,7 @@ describe.skip('Storage', () => {
         id name mail
       }
     }`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       expect(result).to.have.property('createUser');
       expect(result.createUser).to.have.property('id');
       temporary = result.createUser;
@@ -77,7 +75,7 @@ describe.skip('Storage', () => {
       }
     }`;
     const id = temporary.id;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result.readUser.id).to.equal(temporary.id);
       expect(result.readUser.name).to.equal(temporary.name);
       expect(result.readUser.mail).to.equal(temporary.mail);
@@ -90,7 +88,7 @@ describe.skip('Storage', () => {
         id name mail
       }
     }`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       // Other testcases may have added users as well, so check >= 1.
       expect(result.listUser.length >= 1).to.equal(true);
       let found = false;
@@ -111,7 +109,7 @@ describe.skip('Storage', () => {
         id name mail
       }
     }`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       expect(result).to.have.property('createUser');
       expect(result.createUser).to.have.property('id');
     });
@@ -123,7 +121,7 @@ describe.skip('Storage', () => {
         id name mail
       }
     }`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       // Other testcases may have added users as well, so check >= 2.
       expect(result.listUser.length >= 2).to.equal(true);
     });
@@ -135,7 +133,7 @@ describe.skip('Storage', () => {
         id name mail
       }
     }`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       expect(result.listUser).to.have.length(1);
     });
   });
@@ -146,7 +144,7 @@ describe.skip('Storage', () => {
         id name mail
       }
     }`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       expect(result.listUser).to.have.length(1);
     });
   });
@@ -157,7 +155,7 @@ describe.skip('Storage', () => {
         id name mail
       }
     }`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       // The combination with name and mail does not exist.
       expect(result.listUser).to.have.length(0);
     });
@@ -167,7 +165,7 @@ describe.skip('Storage', () => {
     const query = `{
       countUser
     }`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       // Other testcases may have added users as well, so check >= 2.
       expect(result.countUser >= 2).to.equal(true);
     });
@@ -177,7 +175,7 @@ describe.skip('Storage', () => {
     const query = `{
       countUser (name:"John",mail:"john@example.com")
     }`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       expect(result.countUser).to.equal(1);
     });
   });
@@ -189,7 +187,7 @@ describe.skip('Storage', () => {
       }
     }`;
     const id = temporary.id;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result.updateUser.id).to.equal(temporary.id);
       expect(result.updateUser.name).to.equal('Alice');
       expect(result.updateUser.mail).to.equal(temporary.mail);
@@ -201,7 +199,7 @@ describe.skip('Storage', () => {
       deleteUser(id: $id)
     }`;
     const id = temporary.id;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result.deleteUser.id).to.equal(undefined);
     });
   });

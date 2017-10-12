@@ -15,8 +15,8 @@ const WebsiteMockup = require('./mockups/website');
 const expect = chai.expect;
 chai.use(chaiAsPromised);
 
-describe.skip('Http', () => {
-  let storage;
+describe('Http', () => {
+  let queryFactory;
   let container;
   let googleSearch;
   let website;
@@ -56,7 +56,7 @@ describe.skip('Http', () => {
         }
       }
     });
-    storage = await container.get('Storage');
+    queryFactory = await container.get('QueryFactory');
 
     googleSearch = new GoogleSearchMockup(key, cx);
     website = new WebsiteMockup();
@@ -77,7 +77,7 @@ describe.skip('Http', () => {
         id title link snippet
       }
     }`;
-    return storage.query(query, {keyword}).then(result => {
+    return queryFactory.query(query, {keyword}).then(result => {
       // The number of returned items from the mockup is 7 times
       // the character count of the search query.
       expect(result.results).to.have.length(7);
@@ -96,7 +96,7 @@ describe.skip('Http', () => {
         id title link snippet
       }
     }`;
-    return storage.query(query, {keyword}).then(result => {
+    return queryFactory.query(query, {keyword}).then(result => {
       // Number of results should be 4 * 7.
       expect(result.results).to.have.length(28);
       for (let i = 0; i < result.results.length; ++i) {
@@ -113,7 +113,7 @@ describe.skip('Http', () => {
         id title link snippet
       }
     }`;
-    return storage.query(query, {keyword}).then(result => {
+    return queryFactory.query(query, {keyword}).then(result => {
       // Total result count should be 5 * 7 = 35,
       // but maximum number is 3 * 10 = 30.
       expect(result.results).to.have.length(30);
@@ -131,7 +131,7 @@ describe.skip('Http', () => {
         id name age
       }
     }`;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result.results.id).to.equal(id);
       expect(result.results.name).to.equal(website.people[1].name);
       expect(result.results.age).to.equal(website.people[1].age);
@@ -145,7 +145,7 @@ describe.skip('Http', () => {
         id name
       }
     }`;
-    return storage.query(query, {id}).then(result => {
+    return queryFactory.query(query, {id}).then(result => {
       expect(result.results).to.have.length(25);
     });
   });

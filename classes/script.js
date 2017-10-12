@@ -27,7 +27,7 @@ class Script {
    * @param object options
    *   Script options.
    */
-  constructor({definition, options, QueryFactory, Log, Container}) {
+  constructor({definition, options, QueryFactory, Log, ScriptFactory}) {
     if (typeof definition.name !== 'string') {
       throw new Error('Missing name for script');
     }
@@ -45,7 +45,7 @@ class Script {
     this.queryFactory = QueryFactory;
 
     this.log = Log;
-    this.container = Container;
+    this.scriptFactory = ScriptFactory;
 
     this.running = false;
     this.step = 0;
@@ -87,7 +87,8 @@ class Script {
       definition: this.definition,
       options: _.clone(this.options),
       QueryFactory: this.queryFactory,
-      Log: this.log
+      Log: this.log,
+      ScriptFactory: this.scriptFactory
     });
   }
 
@@ -188,13 +189,10 @@ class Script {
     if (!(value instanceof Array)) {
       return Promise.resolve(value);
     }
-    const script = await this.container.get('Script', {
-      definition: {
-        name: this.name + ':' + this.lastAction,
-        steps: value
-      },
-      options: this.options
-    });
+    const script = await this.scriptFactory.create({
+      name: this.name + ':' + this.lastAction,
+      steps: value
+    }, this.options);
     return script.run(_.cloneDeep(input)).then(result => {
       if (this.options.debug) {
         result.info = sourceName;
@@ -268,15 +266,12 @@ class Script {
       return output.join('; ');
     };
 
-    const script = await this.container.get('Script', {
-      definition: {
-        name: `${this.name}:request`,
-        steps: [{
-          object: options
-        }]
-      },
-      options: this.options
-    });
+    const script = await this.scriptFactory.create({
+      name: `${this.name}:request`,
+      steps: [{
+        object: options
+      }]
+    }, this.options);
     return script.run(value).then(options => {
       let response;
       const cookies = options.cookies || {};
@@ -995,6 +990,6 @@ class Script {
   }
 }
 
-Script.require = ['QueryFactory', 'Log', 'Container'];
+Script.require = ['QueryFactory', 'Log', 'ScriptFactory'];
 
 module.exports = Script;

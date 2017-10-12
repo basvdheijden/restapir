@@ -6,11 +6,10 @@ const _ = require('lodash');
 const Bluebird = require('bluebird');
 const fetch = require('node-fetch');
 
-const Script = require('../classes/script');
 const Model = require('../classes/model');
 
 class HttpEngine extends Model {
-  constructor({modelData, database, internalDatabase}) {
+  constructor({modelData, database, internalDatabase, ScriptFactory}) {
     super(modelData, database, internalDatabase);
 
     database = _.defaults(database, {
@@ -19,6 +18,7 @@ class HttpEngine extends Model {
 
     this.dbName = database.name;
     this.parameters = database.parameters;
+    this.scriptFactory = ScriptFactory;
 
     this.httpOperations = _.defaults(modelData.jsonSchema.httpOperations, {});
     if (typeof this.httpOperations.list !== 'undefined') {
@@ -30,12 +30,12 @@ class HttpEngine extends Model {
       if (typeof this.httpOperations.list.template !== 'object') {
         throw new Error('Model.httpOperations.list.template is not defined or not an object');
       }
-      this.listScript = new Script({
+      this.listScript = this.scriptFactory.create({
         name: `${this.name}: list`,
         steps: this.httpOperations.list.template
       }, this.storage);
       if (this.httpOperations.list.moreLink) {
-        this.listMoreLinkScript = new Script({
+        this.listMoreLinkScript = this.scriptFactory.create({
           name: `${this.name}: more link`,
           steps: this.httpOperations.list.moreLink
         }, this.storage);
@@ -46,7 +46,7 @@ class HttpEngine extends Model {
       if (typeof this.httpOperations.read.template !== 'object') {
         throw new Error('Model.httpOperations.read.template is not defined or not an object');
       }
-      this.readScript = new Script({
+      this.readScript = this.scriptFactory.create({
         name: `${this.name}: read`,
         steps: this.httpOperations.read.template
       }, this.storage);
@@ -119,11 +119,13 @@ class HttpEngine extends Model {
       if (response.status >= 300) {
         throw new Error('Retrieved error code from remote server: ' + response.status);
       }
+      return this.readScript;
+    }).then(script => {
       const input = {
         headers: response.headers,
         body: response.body
       };
-      return this.readScript.clone().run(input);
+      return script.clone().run(input);
     }).then(output => {
       if (output !== null) {
         output.id = data.id;
@@ -172,18 +174,22 @@ class HttpEngine extends Model {
           if (response.status >= 300) {
             throw new Error('Retrieved error code from remote server: ' + response.status);
           }
+          return this.listScript;
+        }).then(script => {
           input = {
             headers: response.headers,
             body: response.body
           };
-          return this.listScript.clone().run(input);
+          return script.clone().run(input);
         }).then(pageItems => {
           if (!(pageItems instanceof Array)) {
             throw new Error('List template should return an array');
           }
           results = _.concat(results, pageItems);
           if (strategy === 'more-link') {
-            return this.listMoreLinkScript.clone().run(input).then(_nextUri => {
+            return Promise.resolve(this.listMoreLinkScript).then(script => {
+              return script.clone().run(input);
+            }).then(_nextUri => {
               nextUri = _nextUri;
               if (nextUri !== null) {
                 nextUri = Url.resolve(uri, nextUri);
@@ -209,5 +215,7 @@ class HttpEngine extends Model {
     return {id: data.id};
   }
 }
+
+HttpEngine.require = ['ScriptFactory'];
 
 module.exports = HttpEngine;

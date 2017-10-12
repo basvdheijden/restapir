@@ -9,7 +9,6 @@ const chaiAsPromised = require('chai-as-promised');
 const Bluebird = require('bluebird');
 
 const Container = require('../classes/container');
-const Script = require('../classes/script');
 
 const GoogleSearchMockup = require('./mockups/google-search');
 const WebsiteMockup = require('./mockups/website');
@@ -944,16 +943,13 @@ describe('Script', () => {
   });
 
   it('cannot run a script concurrently', async () => {
-    const storage = {
-      query() {
-        return Bluebird.resolve({}).delay(100);
-      }
-    };
     const script = await createScript({
       name: 'Testscript',
       steps: [{
         object: {}
       }]
+    }, {}, () => {
+      return Bluebird.resolve({}).delay(100);
     });
     // Let first instance run in background.
     script.run();
@@ -962,8 +958,7 @@ describe('Script', () => {
     try {
       script.run();
       failed = true;
-    }
-    catch (err) {
+    } catch (err) {
       // ...
     }
     if (!failed) {
@@ -1069,13 +1064,13 @@ describe('Script', () => {
    */
   it('can run script on startup', async () => {
     let ran = false;
-    const script = await createScript({
+    await createScript({
       name: 'Testscript',
       runOnStartup: true,
       steps: [{
         query: '{}'
       }]
-    }, {}, query => {
+    }, {}, () => {
       ran = true;
       return Bluebird.resolve({});
     });

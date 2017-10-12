@@ -11,9 +11,9 @@ const expect = chai.expect;
 const Container = require('../classes/container');
 const Context = require('../classes/context');
 
-describe.skip('Context', () => {
+describe('Context', () => {
   let container;
-  let storage;
+  let queryFactory;
   let temporary = {};
 
   let regularUser1;
@@ -45,26 +45,26 @@ describe.skip('Context', () => {
       }
     });
 
-    storage = await container.get('Storage');
+    queryFactory = await container.get('QueryFactory');
 
     let query;
     query = `{user:createUser(name: "Alice", mail: "alice@example.com") { id }}`;
-    regularUser1 = await storage.query(query);
+    regularUser1 = await queryFactory.query(query);
     regularUser1 = regularUser1.user.id;
 
     query = `{user:createUser(name: "Bob", mail: "bob@example.com") { id }}`;
-    regularUser2 = await storage.query(query);
+    regularUser2 = await queryFactory.query(query);
     regularUser2 = regularUser2.user.id;
 
     query = `{user:createUser(name: "Chris", mail: "chris@example.com", admin: {}) { id }}`;
-    adminUser = await storage.query(query);
+    adminUser = await queryFactory.query(query);
     adminUser = adminUser.user.id;
   });
 
   after(async () => {
-    await storage.query('{deleteUser(id:$id)}', {id: regularUser1});
-    await storage.query('{deleteUser(id:$id)}', {id: regularUser2});
-    await storage.query('{deleteUser(id:$id)}', {id: adminUser});
+    await queryFactory.query('{deleteUser(id:$id)}', {id: regularUser1});
+    await queryFactory.query('{deleteUser(id:$id)}', {id: regularUser2});
+    await queryFactory.query('{deleteUser(id:$id)}', {id: adminUser});
     await container.shutdown();
   });
 
@@ -77,7 +77,7 @@ describe.skip('Context', () => {
         name
       }
     }`;
-    return storage.query(query, context).then(result => {
+    return queryFactory.query(query, context).then(result => {
       expect(result.User).to.have.property('id', regularUser1);
       expect(result.User).to.have.property('name', 'Alice');
     });
@@ -92,7 +92,7 @@ describe.skip('Context', () => {
       }
     }`;
     const args = {userId: regularUser1};
-    return storage.query(query, context, args).then(result => {
+    return queryFactory.query(query, context, args).then(result => {
       expect(result.createPost).to.have.property('id');
       temporary = {id: result.createPost.id};
     });
@@ -107,7 +107,7 @@ describe.skip('Context', () => {
       }
     }`;
     const args = {id: temporary.id};
-    return storage.query(query, context, args).then(result => {
+    return queryFactory.query(query, context, args).then(result => {
       expect(result.Post).to.have.property('id');
     });
   });
@@ -121,7 +121,7 @@ describe.skip('Context', () => {
       }
     }`;
     const args = {id: temporary.id};
-    return storage.query(query, context, args).then(result => {
+    return queryFactory.query(query, context, args).then(result => {
       expect(result.Post).to.have.property('id');
     });
   });
@@ -135,7 +135,7 @@ describe.skip('Context', () => {
       }
     }`;
     const args = {id: temporary.id};
-    return storage.query(query, context, args).then(result => {
+    return queryFactory.query(query, context, args).then(result => {
       expect(result.updatePost).to.have.property('id');
     });
   });
@@ -150,7 +150,7 @@ describe.skip('Context', () => {
     }`;
     const args = {id: temporary.id};
     return Promise.resolve().then(() => {
-      return storage.query(query, context, args);
+      return queryFactory.query(query, context, args);
     }).then(() => {
       throw new Error('should be rejected');
     }).catch(err => {
@@ -168,7 +168,7 @@ describe.skip('Context', () => {
     }`;
     const args = {id: temporary.id};
     return Promise.resolve().then(() => {
-      return storage.query(query, context, args);
+      return queryFactory.query(query, context, args);
     }).then(() => {
       throw new Error('should be rejected');
     }).catch(err => {
@@ -186,7 +186,7 @@ describe.skip('Context', () => {
       }
     }`;
     const args = {id: temporary.id};
-    return storage.query(query, context, args).then(result => {
+    return queryFactory.query(query, context, args).then(result => {
       expect(result.updatePost).to.have.property('id');
     });
   });

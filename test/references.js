@@ -9,9 +9,9 @@ const expect = chai.expect;
 
 const Container = require('../classes/container');
 
-describe.skip('References', () => {
+describe('References', () => {
   let container;
-  let storage;
+  let queryFactory;
 
   let userId;
   let postId;
@@ -40,24 +40,24 @@ describe.skip('References', () => {
         }
       }
     });
-    storage = await container.get('Storage');
+    queryFactory = await container.get('QueryFactory');
 
     let query;
     let args;
     query = `{user:createUser(name: "Alice", mail: "alice@example.com") { id }}`;
-    return storage.query(query).then(result => {
+    return queryFactory.query(query).then(result => {
       userId = result.user.id;
       query = '{post:createPost(title:"Test",owner:$userId,testboolean:true){id}}';
       args = {userId};
-      return storage.query(query, args);
+      return queryFactory.query(query, args);
     }).then(result => {
       postId = result.post.id;
     });
   });
 
   after(async () => {
-    await storage.query('{deleteUser(id:$userId)}', {userId});
-    await storage.query('{deletePost(id:$postId)}', {postId});
+    await queryFactory.query('{deleteUser(id:$userId)}', {userId});
+    await queryFactory.query('{deletePost(id:$postId)}', {postId});
     await container.shutdown();
   });
 
@@ -70,7 +70,7 @@ describe.skip('References', () => {
       }
     }`;
     const args = {postId};
-    return storage.query(query, args).then(result => {
+    return queryFactory.query(query, args).then(result => {
       expect(result.Post).to.have.property('owner');
       expect(result.Post.owner).to.have.property('id');
     });
@@ -86,7 +86,7 @@ describe.skip('References', () => {
       }
     }`;
     const args = {postId};
-    return storage.query(query, args).then(result => {
+    return queryFactory.query(query, args).then(result => {
       expect(result.Post).to.have.property('owner');
       expect(result.Post.owner).to.have.property('id');
       expect(result.Post.owner).to.have.property('name', 'Alice');
@@ -102,7 +102,7 @@ describe.skip('References', () => {
       }
     }`;
     const args = {userId};
-    return storage.query(query, args).then(result => {
+    return queryFactory.query(query, args).then(result => {
       expect(result.User).to.have.property('posts');
       expect(result.User.posts).to.have.length(1);
       expect(result.User.posts[0]).to.have.property('id', postId);
@@ -118,7 +118,7 @@ describe.skip('References', () => {
       }
     }`;
     const args = {userId};
-    return storage.query(query, args).then(result => {
+    return queryFactory.query(query, args).then(result => {
       expect(result.User).to.have.property('posts');
       expect(result.User.posts).to.have.length(1);
       expect(result.User.posts[0]).to.have.property('id', postId);
@@ -134,7 +134,7 @@ describe.skip('References', () => {
       }
     }`;
     const args = {userId};
-    return storage.query(query, args).then(result => {
+    return queryFactory.query(query, args).then(result => {
       expect(result.User).to.have.property('posts');
       expect(result.User.posts).to.have.length(0);
     });
@@ -147,7 +147,7 @@ describe.skip('References', () => {
       }
     }`;
     const args = {userId};
-    return storage.query(query, args).then(result => {
+    return queryFactory.query(query, args).then(result => {
       expect(result.User).to.have.property('posts');
       expect(result.User.posts).to.have.length(1);
       expect(result.User.posts[0]).to.have.property('id', postId);
