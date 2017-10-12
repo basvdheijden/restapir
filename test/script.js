@@ -899,14 +899,18 @@ describe('Script', () => {
         }
       ]
     });
-    let failed = false;
-    return script.run({n: 1e4}).catch(() => {
-      failed = true;
-    }).then(() => {
-      if (!failed) {
-        throw new Error('Script should fail');
-      }
-    });
+    try {
+      let failed = false;
+      return script.run({n: 1e4}).catch(() => {
+        failed = true;
+      }).then(() => {
+        if (!failed) {
+          throw new Error('Script should fail');
+        }
+      });
+    } catch (err) {
+      // Ignore error.
+    }
   });
 
   it('will not fail when executing many steps (1k)', async () => {

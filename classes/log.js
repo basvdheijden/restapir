@@ -16,7 +16,7 @@ class Log {
   }
 
   exception(error, prefix) {
-    if ((this._debug || this._test) && error.stack) {
+    if (this._debug && error.stack) {
       console.log(error.stack);
     }
     this.error((prefix || '') + error.message);
